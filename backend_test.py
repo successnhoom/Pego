@@ -12,7 +12,7 @@ from datetime import datetime
 import os
 
 # Get backend URL from environment
-BACKEND_URL = "https://49e4ad29-0d0f-4ca0-9311-0a431f40b9ec.preview.emergentagent.com/api"
+BACKEND_URL = "https://c7886ec9-8a09-4889-9731-41fa6f5b4275.preview.emergentagent.com/api"
 
 class PegoAPITester:
     def __init__(self):
