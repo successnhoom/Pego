@@ -306,7 +306,7 @@ async def upload_video_file(
 async def get_videos(limit: int = 50, offset: int = 0):
     """Get videos for current competition round"""
     try:
-        round_id = get_current_competition_round()
+        round_id = await get_current_competition_round()
         
         videos = await db.videos.find({
             "competition_round": round_id,
