@@ -146,7 +146,7 @@ async def initiate_upload(video_data: VideoCreate):
         )
         
         result = await db.videos.insert_one(video.dict())
-        video_id = result.inserted_id
+        video_id = str(result.inserted_id)
         
         # Create Stripe checkout session for 30 THB
         host_url = "http://localhost:3000"  # Will be updated with actual frontend URL
