@@ -157,6 +157,38 @@ async def init_stripe():
         webhook_url = f"{os.environ.get('FRONTEND_URL', 'http://localhost:3000')}/api/webhook/stripe"
         stripe_checkout = StripeCheckout(api_key=stripe_api_key, webhook_url=webhook_url)
 
+def generate_promptpay_qr(promptpay_id: str, amount: float) -> dict:
+    """Generate PromptPay QR code data and image"""
+    try:
+        # Generate PromptPay QR code data
+        qr_data = pp_qrcode.generate_payload(promptpay_id, amount)
+        
+        # Create QR code image
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            box_size=10,
+            border=4,
+        )
+        qr.add_data(qr_data)
+        qr.make(fit=True)
+
+        # Generate image
+        img = qr.make_image(fill_color="black", back_color="white")
+        
+        # Convert to base64
+        buffered = BytesIO()
+        img.save(buffered, format="PNG")
+        img_base64 = base64.b64encode(buffered.getvalue()).decode('utf-8')
+        
+        return {
+            "qr_data": qr_data,
+            "qr_image": f"data:image/png;base64,{img_base64}"
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate PromptPay QR: {str(e)}")
+
 # Routes
 @api_router.get("/")
 async def root():
