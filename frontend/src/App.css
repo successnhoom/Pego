@@ -1,41 +1,48 @@
-/* Tailwind CSS is already configured, but we can add custom styles here */
+/* TikTok-inspired styles */
+@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Sarabun', sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #000;
+  color: #fff;
+  overflow: hidden;
+}
 
 .App {
-  min-height: 100vh;
+  height: 100vh;
+  background-color: #000;
+  overflow: hidden;
 }
 
-/* PWA Specific Styles */
-@media all and (display-mode: standalone) {
-  .App {
-    /* PWA standalone mode specific styles */
-    padding-top: env(safe-area-inset-top);
-    padding-bottom: env(safe-area-inset-bottom);
-    padding-left: env(safe-area-inset-left);
-    padding-right: env(safe-area-inset-right);
-  }
-  
-  .pwa-header {
-    /* Account for device status bar in PWA mode */
-    padding-top: calc(env(safe-area-inset-top) + 1rem);
-  }
-  
-  /* Hide browser elements in standalone mode */
-  #emergent-badge {
-    display: none !important;
-  }
+/* Hide scrollbar but keep functionality */
+.hide-scrollbar {
+  -ms-overflow-style: none;  /* Internet Explorer 10+ */
+  scrollbar-width: none;  /* Firefox */
 }
 
-/* iOS Safari specific PWA fixes */
-@supports (-webkit-appearance: none) {
-  .ios-safe-area {
-    padding-bottom: env(safe-area-inset-bottom);
-  }
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;  /* Safari and Chrome */
 }
 
-/* Custom loading spinner */
+/* Snap scroll styling */
+.snap-y {
+  scroll-snap-type: y mandatory;
+}
+
+.snap-start {
+  scroll-snap-align: start;
+}
+
+/* Loading spinner */
 .spinner {
-  border: 4px solid #f3f4f6;
-  border-top: 4px solid #7c3aed;
+  border: 4px solid rgba(255, 255, 255, 0.1);
+  border-top: 4px solid #ffffff;
   border-radius: 50%;
   width: 40px;
   height: 40px;
@@ -47,8 +54,80 @@
   100% { transform: rotate(360deg); }
 }
 
-/* PWA Install Prompt Animations */
-.pwa-prompt-slide-up {
+/* Line clamp utility */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Video container animations */
+.video-container {
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.video-container:hover .video-overlay {
+  opacity: 1;
+}
+
+/* Action button animations */
+.action-button {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+}
+
+.action-button:hover {
+  transform: scale(1.1);
+}
+
+.action-button:active {
+  transform: scale(0.95);
+}
+
+/* Heart animation for likes */
+@keyframes heartBeat {
+  0% { transform: scale(1); }
+  14% { transform: scale(1.3); }
+  28% { transform: scale(1); }
+  42% { transform: scale(1.3); }
+  70% { transform: scale(1); }
+}
+
+.heart-animation {
+  animation: heartBeat 1.3s ease-in-out;
+}
+
+/* Bounce animation for scroll indicator */
+@keyframes bounce {
+  0%, 20%, 53%, 80%, 100% {
+    transform: translate3d(0,0,0);
+  }
+  40%, 43% {
+    transform: translate3d(0,-15px,0);
+  }
+  70% {
+    transform: translate3d(0,-7px,0);
+  }
+  90% {
+    transform: translate3d(0,-2px,0);
+  }
+}
+
+.animate-bounce {
+  animation: bounce 2s infinite;
+}
+
+/* Comment modal animations */
+.modal-enter {
   animation: slideUpFromBottom 0.3s ease-out;
 }
 
@@ -63,168 +142,44 @@
   }
 }
 
-/* Mobile-first improvements */
-.mobile-nav {
-  transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+/* Profile modal animations */
+.profile-modal-enter {
+  animation: scaleIn 0.3s ease-out;
 }
 
-/* Video player custom styles */
-video::-webkit-media-controls {
-  background-color: rgba(0, 0, 0, 0.1);
+@keyframes scaleIn {
+  from {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
-/* Enhanced mobile video card */
-.video-card {
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+/* Navigation hover effects */
+.nav-item {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   will-change: transform;
 }
 
-.video-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-}
-
-/* Touch-friendly buttons */
-@media (hover: none) and (pointer: coarse) {
-  .video-card:hover {
-    transform: none;
-  }
-  
-  .video-card:active {
-    transform: scale(0.98);
-  }
-  
-  button:active {
-    transform: scale(0.96);
-  }
-}
-
-/* Gradient text for hero */
-.gradient-text {
-  background: linear-gradient(45deg, #7c3aed, #ec4899);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* Custom file input styling */
-input[type="file"] {
-  padding: 0.5rem;
-  border: 2px dashed #d1d5db;
-  border-radius: 0.5rem;
-  background-color: #f9fafb;
-  transition: all 0.3s ease;
-}
-
-input[type="file"]:hover {
-  border-color: #7c3aed;
-  background-color: #f3f4f6;
-}
-
-input[type="file"]:focus {
-  outline: none;
-  border-color: #7c3aed;
-  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
-}
-
-/* Leaderboard animations */
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.leaderboard-item {
-  animation: fadeInUp 0.5s ease forwards;
-}
-
-.leaderboard-item:nth-child(1) { animation-delay: 0.1s; }
-.leaderboard-item:nth-child(2) { animation-delay: 0.2s; }
-.leaderboard-item:nth-child(3) { animation-delay: 0.3s; }
-
-/* Mobile responsive adjustments */
-@media (max-width: 768px) {
-  .container {
-    padding-left: 1rem;
-    padding-right: 1rem;
-  }
-  
-  nav .flex {
-    flex-wrap: nowrap;
-    gap: 0.5rem;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-  }
-  
-  nav .flex::-webkit-scrollbar {
-    display: none;
-  }
-  
-  .grid {
-    gap: 1rem;
-  }
-  
-  /* Better mobile navigation */
-  .mobile-nav-button {
-    min-width: 80px;
-    flex-shrink: 0;
-  }
-}
-
-/* Improved mobile experience for small screens */
-@media (max-width: 480px) {
-  .hero-title {
-    font-size: 2.5rem;
-  }
-  
-  .hero-features {
-    font-size: 1rem;
-  }
-  
-  .upload-form {
-    padding: 1rem;
-  }
-}
-
-/* Thai font support */
-@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
-
-body {
-  font-family: 'Sarabun', sans-serif;
-}
-
-/* Button hover effects with better mobile support */
-button {
-  transition: all 0.3s ease;
-  -webkit-tap-highlight-color: transparent;
-}
-
-button:hover:not(:disabled) {
+.nav-item:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
 }
 
-button:active {
-  transform: translateY(0);
+.nav-item:active {
+  transform: translateY(0) scale(0.95);
 }
 
-/* Prize pool animation */
-.prize-animation {
-  background: linear-gradient(-45deg, #ee7724, #d8363a, #dd3675, #b44593);
-  background-size: 400% 400%;
-  animation: gradient 3s ease infinite;
+/* Create button special styling */
+.create-button {
+  background: linear-gradient(45deg, #8B5CF6, #EC4899);
+  background-size: 200% 200%;
+  animation: gradientShift 3s ease infinite;
 }
 
-@keyframes gradient {
+@keyframes gradientShift {
   0% {
     background-position: 0% 50%;
   }
@@ -236,75 +191,240 @@ button:active {
   }
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: #f1f1f1;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #7c3aed;
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #6d28d9;
-}
-
-/* Upload progress bar */
-.progress-bar {
-  background: linear-gradient(90deg, #7c3aed 0%, #ec4899 100%);
-  height: 4px;
-  border-radius: 2px;
-  transition: width 0.3s ease;
-}
-
-/* Success checkmark animation */
-.checkmark {
-  animation: checkmark 0.5s ease-in-out;
-}
-
-@keyframes checkmark {
-  0% {
-    transform: scale(0);
-  }
-  50% {
-    transform: scale(1.2);
-  }
-  100% {
-    transform: scale(1);
-  }
-}
-
-/* Notification toast styles */
+/* Toast notification styles */
 .toast {
   position: fixed;
   top: 20px;
-  right: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 12px 20px;
+  border-radius: 25px;
+  font-size: 14px;
   z-index: 1000;
-  animation: slideIn 0.3s ease;
+  animation: toastSlideIn 0.3s ease;
 }
 
-@keyframes slideIn {
+@keyframes toastSlideIn {
   from {
-    transform: translateX(100%);
+    transform: translateX(-50%) translateY(-100%);
+    opacity: 0;
   }
   to {
-    transform: translateX(0);
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Upload form styling */
+.upload-form {
+  background: linear-gradient(135deg, #1a1a1a, #2d1b3d);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+.upload-preview {
+  background: linear-gradient(135deg, #000, #1a1a1a);
+  border: 2px dashed rgba(139, 92, 246, 0.5);
+}
+
+/* Custom file input styling */
+input[type="file"]::-webkit-file-upload-button {
+  background: linear-gradient(45deg, #8B5CF6, #EC4899);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+input[type="file"]::-webkit-file-upload-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+}
+
+/* Hashtag styling */
+.hashtag {
+  color: #60A5FA;
+  font-weight: 500;
+}
+
+/* Follow button animations */
+.follow-btn {
+  position: relative;
+  overflow: hidden;
+}
+
+.follow-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.follow-btn:hover::before {
+  left: 100%;
+}
+
+/* Video statistics animations */
+.stat-number {
+  font-variant-numeric: tabular-nums;
+  transition: all 0.3s ease;
+}
+
+.stat-increase {
+  animation: numberPop 0.3s ease;
+  color: #10B981;
+}
+
+@keyframes numberPop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+/* Verified badge styling */
+.verified-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  background: #1DA1F2;
+  border-radius: 50%;
+  color: white;
+  font-size: 10px;
+  margin-left: 4px;
+}
+
+/* Profile grid hover effects */
+.profile-video {
+  transition: transform 0.2s ease;
+  cursor: pointer;
+}
+
+.profile-video:hover {
+  transform: scale(1.05);
+}
+
+/* Responsive design */
+@media (max-width: 640px) {
+  .action-button {
+    width: 48px;
+    height: 48px;
+  }
+  
+  .nav-item {
+    padding: 8px;
+  }
+  
+  .nav-item span:first-child {
+    font-size: 20px;
+  }
+  
+  .nav-item span:last-child {
+    font-size: 10px;
+  }
+}
+
+/* Touch device optimizations */
+@media (hover: none) and (pointer: coarse) {
+  .action-button:hover {
+    transform: none;
+  }
+  
+  .action-button:active {
+    transform: scale(0.95);
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .nav-item:hover {
+    transform: none;
+  }
+  
+  .nav-item:active {
+    transform: scale(0.9);
+  }
+}
+
+/* Dark theme variables */
+:root {
+  --bg-primary: #000000;
+  --bg-secondary: #1a1a1a;
+  --bg-tertiary: #2d2d2d;
+  --text-primary: #ffffff;
+  --text-secondary: #a1a1a1;
+  --accent-primary: #8B5CF6;
+  --accent-secondary: #EC4899;
+  --border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Accessibility improvements */
+button:focus,
+input:focus,
+textarea:focus {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+/* Reduce motion for users with motion sensitivity */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .action-button {
+    border: 2px solid currentColor;
+  }
+  
+  .nav-item {
+    border: 1px solid transparent;
+  }
+  
+  .nav-item:focus {
+    border-color: currentColor;
+  }
+}
+
+/* RTL support for international users */
+[dir="rtl"] .action-buttons {
+  left: 4px;
+  right: auto;
+}
+
+[dir="rtl"] .video-info {
+  text-align: right;
+}
+
+/* Print styles (hidden for video app) */
+@media print {
+  .App {
+    display: none;
   }
 }
 
 /* Loading states */
 .skeleton {
-  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background: linear-gradient(90deg, #1a1a1a 25%, #2d2d2d 50%, #1a1a1a 75%);
   background-size: 200% 100%;
-  animation: loading 1.5s infinite;
+  animation: skeletonLoading 1.5s infinite;
 }
 
-@keyframes loading {
+@keyframes skeletonLoading {
   0% {
     background-position: 200% 0;
   }
@@ -313,134 +433,44 @@ button:active {
   }
 }
 
-/* Video aspect ratio */
-.aspect-video {
-  aspect-ratio: 16 / 9;
+/* Video overlay gradients */
+.video-overlay-gradient {
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.8) 0%,
+    rgba(0, 0, 0, 0.4) 30%,
+    transparent 50%
+  );
 }
 
-/* Competition status indicators */
-.status-active {
-  background: linear-gradient(45deg, #10b981, #34d399);
-  color: white;
-  padding: 0.25rem 0.75rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  display: inline-block;
+/* Custom scrollbar for modal content */
+.modal-scroll::-webkit-scrollbar {
+  width: 4px;
 }
 
-.status-ended {
-  background: linear-gradient(45deg, #ef4444, #f87171);
-  color: white;
-  padding: 0.25rem 0.75rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  display: inline-block;
+.modal-scroll::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
 }
 
-/* PWA specific offline styles */
-.offline-indicator {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
-  animation: pulse 2s infinite;
+.modal-scroll::-webkit-scrollbar-thumb {
+  background: rgba(139, 92, 246, 0.5);
+  border-radius: 4px;
 }
 
-/* Enhanced mobile form styles */
-.mobile-form input,
-.mobile-form textarea,
-.mobile-form select {
-  font-size: 16px; /* Prevents zoom on iOS */
-  -webkit-appearance: none;
-  appearance: none;
+.modal-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 92, 246, 0.7);
 }
 
-/* Better focus states for accessibility */
-input:focus,
-textarea:focus,
-button:focus {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.3);
+/* Share button special animation */
+.share-success {
+  animation: shareSuccess 0.6s ease;
 }
 
-/* PWA splash screen styles */
-.pwa-loading {
-  background: linear-gradient(135deg, #7c3aed 0%, #ec4899 100%);
-  color: white;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100vh;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 9999;
-}
-
-.pwa-logo {
-  font-size: 4rem;
-  margin-bottom: 1rem;
-  animation: bounce 2s infinite;
-}
-
-@keyframes bounce {
-  0%, 20%, 53%, 80%, 100% {
-    transform: translate3d(0,0,0);
-  }
-  40%, 43% {
-    transform: translate3d(0,-30px,0);
-  }
-  70% {
-    transform: translate3d(0,-15px,0);
-  }
-  90% {
-    transform: translate3d(0,-4px,0);
-  }
-}
-
-/* Dark mode support for PWA */
-@media (prefers-color-scheme: dark) {
-  .App {
-    background-color: #1f2937;
-    color: #f9fafb;
-  }
-}
-
-/* Enhanced video controls */
-.video-controls {
-  background: rgba(0, 0, 0, 0.8);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border-radius: 0.5rem;
-  padding: 0.5rem;
-  position: absolute;
-  bottom: 0.5rem;
-  left: 0.5rem;
-  right: 0.5rem;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.video-container:hover .video-controls {
-  opacity: 1;
-}
-
-/* Improved installation prompt */
-.install-prompt {
-  background: rgba(124, 58, 237, 0.95);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-/* Better touch targets */
-@media (pointer: coarse) {
-  button, 
-  input[type="button"], 
-  input[type="submit"],
-  .clickable {
-    min-height: 44px;
-    min-width: 44px;
-  }
+@keyframes shareSuccess {
+  0% { transform: rotate(0deg) scale(1); }
+  25% { transform: rotate(-10deg) scale(1.1); }
+  50% { transform: rotate(10deg) scale(1.1); }
+  75% { transform: rotate(-5deg) scale(1.05); }
+  100% { transform: rotate(0deg) scale(1); }
 }
