@@ -463,7 +463,35 @@ async def confirm_promptpay_payment(session_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to confirm PromptPay payment: {str(e)}")
 
-@api_router.post("/upload/video/{video_id}")
+@api_router.get("/payment/methods")
+async def get_payment_methods():
+    """Get available payment methods"""
+    methods = []
+    
+    # Check if Stripe is available
+    if stripe_api_key:
+        methods.append({
+            "id": "stripe",
+            "name": "Credit/Debit Card",
+            "description": "Pay with Visa, MasterCard, or other cards",
+            "icon": "💳",
+            "available": True
+        })
+    
+    # PromptPay is always available (using test ID if not configured)
+    methods.append({
+        "id": "promptpay",
+        "name": "PromptPay",
+        "description": "Scan QR code with your Thai banking app",
+        "icon": "📱",
+        "available": True
+    })
+    
+    return {
+        "payment_methods": methods,
+        "amount": 30.0,
+        "currency": "THB"
+    }
 async def upload_video_file(
     video_id: str,
     file: UploadFile = File(...),
