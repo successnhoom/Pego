@@ -4,6 +4,34 @@
   min-height: 100vh;
 }
 
+/* PWA Specific Styles */
+@media all and (display-mode: standalone) {
+  .App {
+    /* PWA standalone mode specific styles */
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+  
+  .pwa-header {
+    /* Account for device status bar in PWA mode */
+    padding-top: calc(env(safe-area-inset-top) + 1rem);
+  }
+  
+  /* Hide browser elements in standalone mode */
+  #emergent-badge {
+    display: none !important;
+  }
+}
+
+/* iOS Safari specific PWA fixes */
+@supports (-webkit-appearance: none) {
+  .ios-safe-area {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
 /* Custom loading spinner */
 .spinner {
   border: 4px solid #f3f4f6;
@@ -19,9 +47,58 @@
   100% { transform: rotate(360deg); }
 }
 
+/* PWA Install Prompt Animations */
+.pwa-prompt-slide-up {
+  animation: slideUpFromBottom 0.3s ease-out;
+}
+
+@keyframes slideUpFromBottom {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Mobile-first improvements */
+.mobile-nav {
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
 /* Video player custom styles */
 video::-webkit-media-controls {
   background-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Enhanced mobile video card */
+.video-card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  will-change: transform;
+}
+
+.video-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* Touch-friendly buttons */
+@media (hover: none) and (pointer: coarse) {
+  .video-card:hover {
+    transform: none;
+  }
+  
+  .video-card:active {
+    transform: scale(0.98);
+  }
+  
+  button:active {
+    transform: scale(0.96);
+  }
 }
 
 /* Gradient text for hero */
@@ -44,6 +121,12 @@ input[type="file"] {
 input[type="file"]:hover {
   border-color: #7c3aed;
   background-color: #f3f4f6;
+}
+
+input[type="file"]:focus {
+  outline: none;
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
 }
 
 /* Leaderboard animations */
@@ -74,12 +157,41 @@ input[type="file"]:hover {
   }
   
   nav .flex {
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 0.5rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  
+  nav .flex::-webkit-scrollbar {
+    display: none;
   }
   
   .grid {
     gap: 1rem;
+  }
+  
+  /* Better mobile navigation */
+  .mobile-nav-button {
+    min-width: 80px;
+    flex-shrink: 0;
+  }
+}
+
+/* Improved mobile experience for small screens */
+@media (max-width: 480px) {
+  .hero-title {
+    font-size: 2.5rem;
+  }
+  
+  .hero-features {
+    font-size: 1rem;
+  }
+  
+  .upload-form {
+    padding: 1rem;
   }
 }
 
@@ -90,9 +202,10 @@ body {
   font-family: 'Sarabun', sans-serif;
 }
 
-/* Button hover effects */
+/* Button hover effects with better mobile support */
 button {
   transition: all 0.3s ease;
+  -webkit-tap-highlight-color: transparent;
 }
 
 button:hover:not(:disabled) {
@@ -100,14 +213,8 @@ button:hover:not(:disabled) {
   box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
 }
 
-/* Video card hover effects */
-.video-card {
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.video-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+button:active {
+  transform: translateY(0);
 }
 
 /* Prize pool animation */
@@ -230,4 +337,110 @@ button:hover:not(:disabled) {
   font-size: 0.75rem;
   font-weight: 600;
   display: inline-block;
+}
+
+/* PWA specific offline styles */
+.offline-indicator {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  animation: pulse 2s infinite;
+}
+
+/* Enhanced mobile form styles */
+.mobile-form input,
+.mobile-form textarea,
+.mobile-form select {
+  font-size: 16px; /* Prevents zoom on iOS */
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* Better focus states for accessibility */
+input:focus,
+textarea:focus,
+button:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.3);
+}
+
+/* PWA splash screen styles */
+.pwa-loading {
+  background: linear-gradient(135deg, #7c3aed 0%, #ec4899 100%);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+}
+
+.pwa-logo {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+  animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+  0%, 20%, 53%, 80%, 100% {
+    transform: translate3d(0,0,0);
+  }
+  40%, 43% {
+    transform: translate3d(0,-30px,0);
+  }
+  70% {
+    transform: translate3d(0,-15px,0);
+  }
+  90% {
+    transform: translate3d(0,-4px,0);
+  }
+}
+
+/* Dark mode support for PWA */
+@media (prefers-color-scheme: dark) {
+  .App {
+    background-color: #1f2937;
+    color: #f9fafb;
+  }
+}
+
+/* Enhanced video controls */
+.video-controls {
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+  position: absolute;
+  bottom: 0.5rem;
+  left: 0.5rem;
+  right: 0.5rem;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.video-container:hover .video-controls {
+  opacity: 1;
+}
+
+/* Improved installation prompt */
+.install-prompt {
+  background: rgba(124, 58, 237, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Better touch targets */
+@media (pointer: coarse) {
+  button, 
+  input[type="button"], 
+  input[type="submit"],
+  .clickable {
+    min-height: 44px;
+    min-width: 44px;
+  }
 }
