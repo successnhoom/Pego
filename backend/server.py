@@ -381,7 +381,7 @@ async def record_view(video_id: str, viewer_data: VideoView):
 async def get_leaderboard():
     """Get current competition leaderboard"""
     try:
-        round_id = get_current_competition_round()
+        round_id = await get_current_competition_round()
         
         # Get top 1000 videos by views
         top_videos = await db.videos.find({
