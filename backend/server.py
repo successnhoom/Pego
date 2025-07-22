@@ -15,6 +15,11 @@ import aiofiles
 import shutil
 import json
 
+# Import new modules
+from models import Video, User, VideoInteraction, Competition, AlgorithmScore, AdminUser
+from algorithm import VideoRecommendationEngine
+from admin_routes import admin_router
+
 # Emergent integrations for payments
 from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionResponse, CheckoutStatusResponse, CheckoutSessionRequest
 
