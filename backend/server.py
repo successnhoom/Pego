@@ -196,12 +196,7 @@ async def root():
 
 @api_router.post("/upload/initiate")
 async def initiate_upload(video_data: VideoCreate):
-    """Initiate video upload - creates payment session first"""
-    await init_stripe()
-    
-    if not stripe_checkout:
-        raise HTTPException(status_code=500, detail="Payment system not configured")
-    
+    """Initiate video upload - creates video record first, payment later"""
     try:
         # Get current competition round
         round_id = await get_current_competition_round()
@@ -221,51 +216,108 @@ async def initiate_upload(video_data: VideoCreate):
         result = await db.videos.insert_one(video.dict())
         video_id = str(result.inserted_id)
         
-        # Create Stripe checkout session for 30 THB
-        host_url = "http://localhost:3000"  # Will be updated with actual frontend URL
-        success_url = f"{host_url}/upload/success?session_id={{CHECKOUT_SESSION_ID}}&video_id={video_id}"
-        cancel_url = f"{host_url}/upload/cancel"
-        
-        checkout_request = CheckoutSessionRequest(
-            amount=30.0,
-            currency="thb",
-            success_url=success_url,
-            cancel_url=cancel_url,
-            metadata={
-                "video_id": str(video_id),
-                "user_id": video_data.user_id,
-                "service": "video_upload"
-            }
-        )
-        
-        session: CheckoutSessionResponse = await stripe_checkout.create_checkout_session(checkout_request)
-        
-        # Store payment session
-        payment_session = PaymentSession(
-            session_id=session.session_id,
-            user_id=video_data.user_id,
-            video_id=str(video_id),
-            amount=30.0,
-            currency="thb",
-            status="initiated"
-        )
-        
-        await db.payment_sessions.insert_one(payment_session.dict())
-        
-        # Update video with payment session
-        await db.videos.update_one(
-            {"_id": result.inserted_id},
-            {"$set": {"payment_session_id": session.session_id}}
-        )
-        
         return {
             "video_id": video_id,
-            "checkout_url": session.url,
-            "session_id": session.session_id
+            "message": "Video initiated successfully. Please select payment method."
         }
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to initiate upload: {str(e)}")
+
+@api_router.post("/payment/create")
+async def create_payment_session(payment_request: PaymentMethodRequest):
+    """Create payment session based on selected method"""
+    try:
+        # Verify video exists
+        video_doc = await db.videos.find_one({"id": payment_request.video_id})
+        if not video_doc:
+            raise HTTPException(status_code=404, detail="Video not found")
+        
+        if video_doc.get("is_paid", False):
+            raise HTTPException(status_code=400, detail="Video already paid")
+        
+        amount = 30.0  # 30 THB
+        
+        if payment_request.payment_method == "stripe":
+            await init_stripe()
+            
+            if not stripe_checkout:
+                raise HTTPException(status_code=500, detail="Stripe not configured")
+            
+            # Create Stripe checkout session
+            host_url = "http://localhost:3000"
+            success_url = f"{host_url}/upload/success?session_id={{CHECKOUT_SESSION_ID}}&video_id={payment_request.video_id}"
+            cancel_url = f"{host_url}/upload/cancel"
+            
+            checkout_request = CheckoutSessionRequest(
+                amount=amount,
+                currency="thb",
+                success_url=success_url,
+                cancel_url=cancel_url,
+                metadata={
+                    "video_id": payment_request.video_id,
+                    "user_id": payment_request.user_id,
+                    "service": "video_upload"
+                }
+            )
+            
+            session: CheckoutSessionResponse = await stripe_checkout.create_checkout_session(checkout_request)
+            
+            # Store payment session
+            payment_session = PaymentSession(
+                session_id=session.session_id,
+                user_id=payment_request.user_id,
+                video_id=payment_request.video_id,
+                amount=amount,
+                currency="thb",
+                status="initiated",
+                payment_method="stripe"
+            )
+            
+            await db.payment_sessions.insert_one(payment_session.dict())
+            
+            return {
+                "payment_method": "stripe",
+                "checkout_url": session.url,
+                "session_id": session.session_id
+            }
+            
+        elif payment_request.payment_method == "promptpay":
+            # Generate PromptPay QR code
+            qr_result = generate_promptpay_qr(promptpay_id, amount)
+            
+            # Create PromptPay session (expires in 10 minutes)
+            expires_at = datetime.utcnow() + timedelta(minutes=10)
+            
+            promptpay_session = PromptPaySession(
+                qr_code_data=qr_result["qr_data"],
+                qr_code_image=qr_result["qr_image"],
+                user_id=payment_request.user_id,
+                video_id=payment_request.video_id,
+                amount=amount,
+                currency="THB",
+                status="pending",
+                expires_at=expires_at
+            )
+            
+            result = await db.promptpay_sessions.insert_one(promptpay_session.dict())
+            session_id = str(result.inserted_id)
+            
+            return {
+                "payment_method": "promptpay",
+                "session_id": session_id,
+                "qr_code": qr_result["qr_image"],
+                "amount": amount,
+                "currency": "THB",
+                "expires_at": expires_at.isoformat(),
+                "instructions": "Scan the QR code with your banking app to pay 30 THB"
+            }
+            
+        else:
+            raise HTTPException(status_code=400, detail="Invalid payment method")
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to create payment session: {str(e)}")
 
 @api_router.get("/payment/status/{session_id}")
 async def check_payment_status(session_id: str):
