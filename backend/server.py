@@ -23,6 +23,12 @@ from admin_routes import admin_router
 # Emergent integrations for payments
 from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionResponse, CheckoutStatusResponse, CheckoutSessionRequest
 
+# PromptPay imports
+from pypromptpay import qrcode as pp_qrcode
+import qrcode
+import base64
+from io import BytesIO
+
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
