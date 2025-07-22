@@ -96,8 +96,21 @@ class PaymentSession(BaseModel):
     amount: float
     currency: str
     status: str
+    payment_method: str  # "stripe" or "promptpay"
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+class PromptPaySession(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    qr_code_data: str
+    qr_code_image: str  # Base64 encoded image
+    user_id: str
+    video_id: Optional[str] = None
+    amount: float
+    currency: str = "THB"
+    status: str = "pending"  # pending, paid, expired
+    expires_at: datetime
+    created_at: datetime = Field(default_factory=datetime.utcnow)
 
 class CompetitionRound(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
