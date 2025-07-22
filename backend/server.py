@@ -344,7 +344,7 @@ async def check_stripe_payment_status(session_id: str):
             video_id = status.metadata.get("video_id")
             if video_id:
                 await db.videos.update_one(
-                    {"id": video_id},
+                    {"_id": video_id},
                     {"$set": {"is_paid": True}}
                 )
                 
