@@ -131,7 +131,7 @@ async def initiate_upload(video_data: VideoCreate):
     
     try:
         # Get current competition round
-        round_id = get_current_competition_round()
+        round_id = await get_current_competition_round()
         
         # Create video record (unpaid)
         video = VideoUpload(
