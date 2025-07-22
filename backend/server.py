@@ -186,7 +186,7 @@ async def initiate_upload(video_data: VideoCreate):
         )
         
         return {
-            "video_id": str(video_id),
+            "video_id": video_id,
             "checkout_url": session.url,
             "session_id": session.session_id
         }
