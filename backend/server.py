@@ -319,9 +319,9 @@ async def create_payment_session(payment_request: PaymentMethodRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to create payment session: {str(e)}")
 
-@api_router.get("/payment/status/{session_id}")
-async def check_payment_status(session_id: str):
-    """Check payment status"""
+@api_router.get("/payment/status/stripe/{session_id}")
+async def check_stripe_payment_status(session_id: str):
+    """Check Stripe payment status"""
     await init_stripe()
     
     try:
@@ -344,8 +344,20 @@ async def check_payment_status(session_id: str):
             video_id = status.metadata.get("video_id")
             if video_id:
                 await db.videos.update_one(
-                    {"_id": video_id},
+                    {"id": video_id},
                     {"$set": {"is_paid": True}}
+                )
+                
+                # Update competition round stats
+                await db.competition_rounds.update_one(
+                    {"id": await get_current_competition_round()},
+                    {
+                        "$inc": {
+                            "total_revenue": 30.0,
+                            "total_videos": 1,
+                            "prize_pool": 21.0  # 70% of 30 THB
+                        }
+                    }
                 )
         
         return {
@@ -353,11 +365,103 @@ async def check_payment_status(session_id: str):
             "status": status.status,
             "payment_status": status.payment_status,
             "amount": status.amount_total / 100,  # Convert from cents
-            "currency": status.currency
+            "currency": status.currency,
+            "payment_method": "stripe"
         }
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to check payment status: {str(e)}")
+
+@api_router.get("/payment/status/promptpay/{session_id}")
+async def check_promptpay_payment_status(session_id: str):
+    """Check PromptPay payment status"""
+    try:
+        # Get PromptPay session
+        promptpay_session = await db.promptpay_sessions.find_one({"id": session_id})
+        
+        if not promptpay_session:
+            raise HTTPException(status_code=404, detail="PromptPay session not found")
+        
+        # Check if session expired
+        if datetime.utcnow() > promptpay_session["expires_at"]:
+            await db.promptpay_sessions.update_one(
+                {"id": session_id},
+                {"$set": {"status": "expired"}}
+            )
+            return {
+                "session_id": session_id,
+                "status": "expired",
+                "payment_method": "promptpay"
+            }
+        
+        return {
+            "session_id": session_id,
+            "status": promptpay_session["status"],
+            "amount": promptpay_session["amount"],
+            "currency": promptpay_session["currency"],
+            "expires_at": promptpay_session["expires_at"].isoformat(),
+            "payment_method": "promptpay",
+            "qr_code": promptpay_session["qr_code_image"]
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to check PromptPay status: {str(e)}")
+
+@api_router.post("/payment/confirm/promptpay/{session_id}")
+async def confirm_promptpay_payment(session_id: str):
+    """Manually confirm PromptPay payment (for testing purposes)"""
+    try:
+        # Get PromptPay session
+        promptpay_session = await db.promptpay_sessions.find_one({"id": session_id})
+        
+        if not promptpay_session:
+            raise HTTPException(status_code=404, detail="PromptPay session not found")
+        
+        if promptpay_session["status"] == "paid":
+            raise HTTPException(status_code=400, detail="Payment already confirmed")
+        
+        # Check if session expired
+        if datetime.utcnow() > promptpay_session["expires_at"]:
+            await db.promptpay_sessions.update_one(
+                {"id": session_id},
+                {"$set": {"status": "expired"}}
+            )
+            raise HTTPException(status_code=400, detail="Payment session expired")
+        
+        # Mark payment as paid
+        await db.promptpay_sessions.update_one(
+            {"id": session_id},
+            {"$set": {"status": "paid"}}
+        )
+        
+        # Mark video as paid
+        video_id = promptpay_session["video_id"]
+        if video_id:
+            await db.videos.update_one(
+                {"id": video_id},
+                {"$set": {"is_paid": True}}
+            )
+            
+            # Update competition round stats
+            await db.competition_rounds.update_one(
+                {"id": await get_current_competition_round()},
+                {
+                    "$inc": {
+                        "total_revenue": 30.0,
+                        "total_videos": 1,
+                        "prize_pool": 21.0  # 70% of 30 THB
+                    }
+                }
+            )
+        
+        return {
+            "message": "PromptPay payment confirmed successfully",
+            "session_id": session_id,
+            "video_id": video_id
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to confirm PromptPay payment: {str(e)}")
 
 @api_router.post("/upload/video/{video_id}")
 async def upload_video_file(
