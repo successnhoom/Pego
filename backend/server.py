@@ -59,6 +59,9 @@ async def get_algorithm_engine():
 stripe_api_key = os.environ.get('STRIPE_API_KEY')
 stripe_checkout = None
 
+# PromptPay setup
+promptpay_id = os.environ.get('PROMPTPAY_ID', '0123456789')  # Default test ID
+
 # Models
 class VideoUpload(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
