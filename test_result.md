@@ -101,3 +101,110 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+
+user_problem_statement: "สร้างแอพ Pego - แพลตฟอร์มแชร์วิดีโอสั้นแบบแข่งขัน ผู้ใช้จ่าย 30 บาทต่อการอัพโหลด รอบแข่งขัน 7 วัน วิดีโอ Top 1,000 ได้รับเงินรางวัล 70% ของรายได้"
+
+backend:
+  - task: "Video Upload API with chunked upload"
+    implemented: false
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Initial task planning - need to implement video upload with 3 minute limit"
+
+  - task: "Payment Integration - Stripe & PromptPay"
+    implemented: false
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Obtained integration playbooks for both Stripe and PromptPay, ready to implement"
+
+  - task: "View Counting System"
+    implemented: false
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Need accurate view tracking for leaderboard"
+
+  - task: "Competition Rounds Logic"
+    implemented: false
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "7-day competition cycles, prize distribution algorithm"
+
+frontend:
+  - task: "Video Upload Interface"
+    implemented: false
+    working: "NA"
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Need mobile-first video upload UI with progress indicators"
+
+  - task: "Payment UI - Stripe & PromptPay"
+    implemented: false
+    working: "NA"
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "30 THB payment UI with dual payment methods"
+
+  - task: "Video Feed & Leaderboard"
+    implemented: false
+    working: "NA"
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Display videos, view counts, and leaderboard rankings"
+
+metadata:
+  created_by: "main_agent"
+  version: "1.0"
+  test_sequence: 0
+  run_ui: false
+
+test_plan:
+  current_focus:
+    - "Video Upload API with chunked upload"
+    - "Payment Integration - Stripe & PromptPay"
+    - "Video Upload Interface"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+    - agent: "main"
+      message: "Initial project setup for Pego video contest platform. Starting with core video upload and payment features. Have integration playbooks ready for Stripe and PromptPay."
