@@ -40,6 +40,15 @@ UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
 
+# Initialize Algorithm Engine
+algorithm_engine = None
+
+async def get_algorithm_engine():
+    global algorithm_engine
+    if not algorithm_engine:
+        algorithm_engine = VideoRecommendationEngine(db)
+    return algorithm_engine
+
 # Stripe setup
 stripe_api_key = os.environ.get('STRIPE_API_KEY')
 stripe_checkout = None
