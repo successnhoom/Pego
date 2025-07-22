@@ -438,7 +438,7 @@ async def confirm_promptpay_payment(session_id: str):
         video_id = promptpay_session["video_id"]
         if video_id:
             await db.videos.update_one(
-                {"id": video_id},
+                {"_id": video_id},
                 {"$set": {"is_paid": True}}
             )
             
