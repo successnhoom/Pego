@@ -37,8 +37,7 @@ api_router = APIRouter(prefix="/api")
 
 # Stripe setup
 stripe_api_key = os.environ.get('STRIPE_API_KEY')
-if stripe_api_key:
-    stripe_checkout = None
+stripe_checkout = None
 
 # Models
 class VideoUpload(BaseModel):
