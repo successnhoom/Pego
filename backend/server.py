@@ -87,10 +87,10 @@ class CompetitionRound(BaseModel):
     winners: List[Dict] = []
 
 # Helper functions
-def get_current_competition_round():
+async def get_current_competition_round():
     """Get or create the current active competition round"""
     now = datetime.utcnow()
-    current_round = db.competition_rounds.find_one({
+    current_round = await db.competition_rounds.find_one({
         "is_active": True,
         "start_date": {"$lte": now},
         "end_date": {"$gte": now}
@@ -105,7 +105,7 @@ def get_current_competition_round():
             start_date=start_date,
             end_date=end_date
         )
-        db.competition_rounds.insert_one(round_data.dict())
+        result = await db.competition_rounds.insert_one(round_data.dict())
         return round_data.id
     
     return current_round["id"]
