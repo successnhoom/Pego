@@ -229,7 +229,7 @@ async def create_payment_session(payment_request: PaymentMethodRequest):
     """Create payment session based on selected method"""
     try:
         # Verify video exists
-        video_doc = await db.videos.find_one({"_id": payment_request.video_id})
+        video_doc = await db.videos.find_one({"id": payment_request.video_id})
         if not video_doc:
             raise HTTPException(status_code=404, detail="Video not found")
         
