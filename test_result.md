@@ -106,52 +106,64 @@ user_problem_statement: "สร้างแอพ Pego - แพลตฟอร�
 
 backend:
   - task: "Video Upload API with chunked upload"
-    implemented: false
-    working: "NA"
+    implemented: true
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "NA"
           agent: "main"
           comment: "Initial task planning - need to implement video upload with 3 minute limit"
+        - working: true
+          agent: "testing"
+          comment: "Backend testing agent confirmed: Video upload API fully implemented with payment integration, file validation, and proper error handling"
 
   - task: "Payment Integration - Stripe & PromptPay"
-    implemented: false
-    working: "NA"
+    implemented: true
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "NA"
           agent: "main"
           comment: "Obtained integration playbooks for both Stripe and PromptPay, ready to implement"
+        - working: true
+          agent: "testing"
+          comment: "Stripe integration fully working - payment session creation, status checking, and webhook handling all implemented correctly"
 
   - task: "View Counting System"
-    implemented: false
-    working: "NA"
+    implemented: true
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "medium"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "NA"
           agent: "main"
           comment: "Need accurate view tracking for leaderboard"
+        - working: true
+          agent: "testing"
+          comment: "View counting system implemented with proper view recording and increment logic"
 
   - task: "Competition Rounds Logic"
-    implemented: false
-    working: "NA"
+    implemented: true
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "medium"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "NA"
           agent: "main"
           comment: "7-day competition cycles, prize distribution algorithm"
+        - working: true
+          agent: "testing"
+          comment: "Competition rounds system fully implemented - 7-day cycles, prize pool calculation (70% of revenue), automatic round creation"
 
 frontend:
   - task: "Video Upload Interface"
