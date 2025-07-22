@@ -447,6 +447,7 @@ const PaymentSuccess = () => {
 // Main App Component
 const App = () => {
   const [currentView, setCurrentView] = useState('home');
+  const { isInstalled, isOnline } = usePWA();
 
   // Check if returning from payment
   useEffect(() => {
@@ -454,18 +455,39 @@ const App = () => {
     if (urlParams.get('session_id')) {
       setCurrentView('payment-success');
     }
+    // Handle PWA shortcuts
+    const action = urlParams.get('action');
+    if (action === 'upload') {
+      setCurrentView('upload');
+    } else if (action === 'leaderboard') {
+      setCurrentView('leaderboard');
+    }
   }, []);
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* PWA Components */}
+      <OfflineIndicator />
+      <PWAUpdatePrompt />
+      
       {/* Header */}
-      <header className="bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg">
+      <header className={`${isInstalled ? 'pt-2' : ''} bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg`}>
         <div className="container mx-auto px-4 py-6">
-          <h1 className="text-4xl font-bold text-center mb-2">
-            🎬 Pego
-          </h1>
-          <p className="text-center text-purple-100">
+          <div className="flex items-center justify-center">
+            <span className="text-3xl mr-3">🎬</span>
+            <div>
+              <h1 className="text-4xl font-bold">Pego</h1>
+              {isInstalled && (
+                <div className="flex items-center text-purple-200 text-sm">
+                  <span className="w-2 h-2 bg-green-400 rounded-full mr-2"></span>
+                  แอปโหลดแล้ว
+                </div>
+              )}
+            </div>
+          </div>
+          <p className="text-center text-purple-100 mt-2">
             แพลตฟอร์มแข่งขันวิดีโอสั้น • ลงคลิป 30฿ • รางวัลรวม 70%
+            {!isOnline && <span className="ml-2 text-orange-200">• โหมดออฟไลน์</span>}
           </p>
         </div>
       </header>
@@ -495,6 +517,12 @@ const App = () => {
                   <span className="text-2xl mr-3">⏰</span>
                   <span>แข่งขันทุกรอบ 7 วัน</span>
                 </div>
+                {isInstalled && (
+                  <div className="flex items-center text-green-600">
+                    <span className="text-2xl mr-3">📱</span>
+                    <span className="font-medium">ใช้งานแบบ Native App แล้ว!</span>
+                  </div>
+                )}
               </div>
             </div>
             <div className="flex justify-center">
@@ -503,6 +531,7 @@ const App = () => {
                 alt="Video Creation"
                 className="rounded-lg shadow-lg max-w-full h-auto"
                 style={{ maxHeight: '400px' }}
+                loading="lazy"
               />
             </div>
           </div>
@@ -511,38 +540,41 @@ const App = () => {
 
       {/* Navigation */}
       {currentView !== 'payment-success' && (
-        <nav className="bg-white shadow-md sticky top-0 z-10">
+        <nav className={`bg-white shadow-md sticky ${isInstalled ? 'top-0' : 'top-0'} z-10`}>
           <div className="container mx-auto px-4">
-            <div className="flex justify-center space-x-8 py-4">
+            <div className="flex justify-center space-x-4 md:space-x-8 py-4 overflow-x-auto">
               <button
                 onClick={() => setCurrentView('home')}
-                className={`px-6 py-2 font-medium rounded-full ${
+                className={`px-4 md:px-6 py-2 font-medium rounded-full whitespace-nowrap transition-all ${
                   currentView === 'home'
-                    ? 'bg-purple-600 text-white'
-                    : 'text-gray-600 hover:text-purple-600'
+                    ? 'bg-purple-600 text-white shadow-md'
+                    : 'text-gray-600 hover:text-purple-600 hover:bg-purple-50'
                 }`}
               >
-                🏠 หน้าหลัก
+                <span className="md:hidden">🏠</span>
+                <span className="hidden md:inline">🏠 หน้าหลัก</span>
               </button>
               <button
                 onClick={() => setCurrentView('upload')}
-                className={`px-6 py-2 font-medium rounded-full ${
+                className={`px-4 md:px-6 py-2 font-medium rounded-full whitespace-nowrap transition-all ${
                   currentView === 'upload'
-                    ? 'bg-purple-600 text-white'
-                    : 'text-gray-600 hover:text-purple-600'
+                    ? 'bg-purple-600 text-white shadow-md'
+                    : 'text-gray-600 hover:text-purple-600 hover:bg-purple-50'
                 }`}
               >
-                📤 อัพโหลด
+                <span className="md:hidden">📤</span>
+                <span className="hidden md:inline">📤 อัพโหลด</span>
               </button>
               <button
                 onClick={() => setCurrentView('leaderboard')}
-                className={`px-6 py-2 font-medium rounded-full ${
+                className={`px-4 md:px-6 py-2 font-medium rounded-full whitespace-nowrap transition-all ${
                   currentView === 'leaderboard'
-                    ? 'bg-purple-600 text-white'
-                    : 'text-gray-600 hover:text-purple-600'
+                    ? 'bg-purple-600 text-white shadow-md'
+                    : 'text-gray-600 hover:text-purple-600 hover:bg-purple-50'
                 }`}
               >
-                🏆 ลีดเดอร์บอร์ด
+                <span className="md:hidden">🏆</span>
+                <span className="hidden md:inline">🏆 ลีดเดอร์บอร์ด</span>
               </button>
             </div>
           </div>
@@ -557,16 +589,25 @@ const App = () => {
         {currentView === 'payment-success' && <PaymentSuccess />}
       </main>
 
+      {/* PWA Install Prompt */}
+      <PWAInstallPrompt />
+
       {/* Footer */}
       <footer className="bg-gray-800 text-white py-8 mt-16">
         <div className="container mx-auto px-4 text-center">
           <h3 className="text-xl font-bold mb-4">🎬 Pego</h3>
           <p className="text-gray-300 mb-4">
             แพลตฟอร์มแข่งขันวิดีโอสั้นที่ใหญ่ที่สุดในไทย
+            {isInstalled && <span className="block text-green-400 text-sm mt-1">📱 PWA Version</span>}
           </p>
           <div className="flex justify-center space-x-6 text-sm text-gray-400">
             <span>📧 support@pego.com</span>
             <span>📞 02-xxx-xxxx</span>
+            {isOnline ? (
+              <span className="text-green-400">🌐 ออนไลน์</span>
+            ) : (
+              <span className="text-orange-400">📶 ออฟไลน์</span>
+            )}
           </div>
         </div>
       </footer>
