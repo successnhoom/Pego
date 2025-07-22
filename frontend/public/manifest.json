@@ -1,0 +1,97 @@
+{
+  "name": "Pego - แพลตฟอร์มแข่งขันวิดีโอสั้น",
+  "short_name": "Pego",
+  "description": "แพลตฟอร์มแข่งขันวิดีโอสั้น ลงคลิป 30฿ รางวัล 70%",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#7c3aed",
+  "theme_color": "#7c3aed",
+  "orientation": "portrait-primary",
+  "categories": ["entertainment", "social", "video"],
+  "lang": "th",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/icons/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "อัพโหลดวิดีโอ",
+      "short_name": "อัพโหลด",
+      "description": "อัพโหลดวิดีโอใหม่",
+      "url": "/?action=upload",
+      "icons": [{ "src": "/icons/upload-icon-96x96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "ลีดเดอร์บอร์ด",
+      "short_name": "อันดับ",
+      "description": "ดูอันดับการแข่งขัน",
+      "url": "/?action=leaderboard",
+      "icons": [{ "src": "/icons/trophy-icon-96x96.png", "sizes": "96x96" }]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/mobile-screenshot-1.png",
+      "sizes": "540x720",
+      "type": "image/png",
+      "platform": "mobile",
+      "label": "หน้าหลัก Pego"
+    },
+    {
+      "src": "/screenshots/mobile-screenshot-2.png",
+      "sizes": "540x720",
+      "type": "image/png",
+      "platform": "mobile",
+      "label": "หน้าอัพโหลดวิดีโอ"
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false
+}

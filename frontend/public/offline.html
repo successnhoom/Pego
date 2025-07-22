@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#7c3aed" />
+    <title>Pego - ออฟไลน์</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Sarabun', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #7c3aed 0%, #ec4899 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        
+        .offline-container {
+            text-align: center;
+            padding: 2rem;
+            max-width: 400px;
+        }
+        
+        .offline-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        h1 {
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        
+        p {
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+        }
+        
+        .retry-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            padding: 0.75rem 1.5rem;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        
+        .retry-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: translateY(-2px);
+        }
+        
+        .features {
+            margin-top: 2rem;
+            text-align: left;
+        }
+        
+        .feature-item {
+            margin: 0.5rem 0;
+            display: flex;
+            align-items: center;
+            opacity: 0.8;
+        }
+        
+        .feature-item span {
+            margin-right: 0.5rem;
+            font-size: 1.2rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="offline-container">
+        <div class="offline-icon">📱</div>
+        <h1>🎬 Pego</h1>
+        <p>ขณะนี้คุณไม่ได้เชื่อมต่ออินเทอร์เน็ต<br/>กรุณาตรวจสอบการเชื่อมต่อแล้วลองใหม่อีกครั้ง</p>
+        
+        <button class="retry-btn" onclick="window.location.reload()">
+            🔄 ลองใหม่อีกครั้ง
+        </button>
+        
+        <div class="features">
+            <h3>ฟีเจอร์ Pego:</h3>
+            <div class="feature-item">
+                <span>🎥</span>
+                <span>อัพโหลดวิดีโอสั้นสูงสุด 3 นาที</span>
+            </div>
+            <div class="feature-item">
+                <span>💰</span>
+                <span>เพียง 30 บาทต่อคลิป</span>
+            </div>
+            <div class="feature-item">
+                <span>🏆</span>
+                <span>วิดีโอ Top 1,000 รับรางวัล 70%</span>
+            </div>
+            <div class="feature-item">
+                <span>⏰</span>
+                <span>แข่งขันทุกรอบ 7 วัน</span>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Auto-retry when online
+        window.addEventListener('online', () => {
+            window.location.reload();
+        });
+        
+        // Check connection status
+        if (navigator.onLine) {
+            window.location.href = '/';
+        }
+    </script>
+</body>
+</html>
