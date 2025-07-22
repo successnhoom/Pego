@@ -181,7 +181,7 @@ async def initiate_upload(video_data: VideoCreate):
         
         # Update video with payment session
         await db.videos.update_one(
-            {"_id": video_id},
+            {"_id": result.inserted_id},
             {"$set": {"payment_session_id": session.session_id}}
         )
         
