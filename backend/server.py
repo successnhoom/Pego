@@ -367,29 +367,57 @@ async def stream_video(video_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@api_router.post("/video/{video_id}/view")
-async def record_view(video_id: str, viewer_data: VideoView):
-    """Record video view"""
+@api_router.get("/feed/personalized")
+async def get_personalized_feed(
+    user_id: Optional[str] = None,
+    limit: int = 10,
+    algorithm_version: str = "1.0"
+):
+    """Get personalized video feed using recommendation algorithm"""
     try:
-        # Check if video exists
-        video = await db.videos.find_one({"id": video_id})
-        if not video:
-            raise HTTPException(status_code=404, detail="Video not found")
+        engine = await get_algorithm_engine()
+        feed = await engine.get_personalized_feed(user_id, limit)
         
-        # Record view
-        view = VideoView(video_id=video_id, viewer_id=viewer_data.viewer_id)
-        await db.video_views.insert_one(view.dict())
-        
-        # Increment view count
-        await db.videos.update_one(
-            {"id": video_id},
-            {"$inc": {"view_count": 1}}
-        )
-        
-        return {"message": "View recorded", "video_id": video_id}
+        return {
+            "feed": feed,
+            "algorithm_version": algorithm_version,
+            "total_items": len(feed)
+        }
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"Failed to get personalized feed: {str(e)}")
+
+@api_router.post("/interaction")
+async def record_interaction(
+    video_id: str,
+    interaction_type: str,  # "view", "like", "comment", "share", "watch_time"
+    user_id: Optional[str] = None,
+    value: Optional[float] = None  # For watch_time
+):
+    """Record user interaction and update algorithm"""
+    try:
+        engine = await get_algorithm_engine()
+        
+        # Record interaction
+        interaction = VideoInteraction(
+            video_id=video_id,
+            user_id=user_id,
+            interaction_type=interaction_type,
+            value=value
+        )
+        await db.video_interactions.insert_one(interaction.dict())
+        
+        # Update video metrics
+        await engine.update_video_metrics(video_id, interaction_type, value)
+        
+        # Learn user preferences if user is logged in
+        if user_id:
+            await engine.learn_user_preferences(user_id, video_id, interaction_type, value)
+        
+        return {"message": "Interaction recorded successfully"}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to record interaction: {str(e)}")
 
 @api_router.get("/leaderboard")
 async def get_leaderboard():
