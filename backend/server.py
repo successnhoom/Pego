@@ -83,6 +83,11 @@ class VideoCreate(BaseModel):
     description: Optional[str] = ""
     user_id: str
 
+class PaymentMethodRequest(BaseModel):
+    video_id: str
+    payment_method: str  # "stripe" or "promptpay"
+    user_id: str
+
 class VideoView(BaseModel):
     video_id: str
     viewer_id: Optional[str] = None
