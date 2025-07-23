@@ -718,7 +718,7 @@ async def stripe_webhook(request: Request):
             video_id = webhook_response.metadata.get("video_id")
             if video_id:
                 await db.videos.update_one(
-                    {"_id": video_id},
+                    {"id": video_id},
                     {"$set": {"is_paid": True}}
                 )
         
