@@ -542,6 +542,8 @@ async def get_payment_methods():
         "amount": 30.0,
         "currency": "THB"
     }
+
+@api_router.post("/upload/video/{video_id}")
 async def upload_video_file(
     video_id: str,
     file: UploadFile = File(...),
