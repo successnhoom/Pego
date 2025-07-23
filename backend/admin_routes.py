@@ -137,7 +137,7 @@ async def create_admin(admin_data: AdminCreate, db):
     }
 
 @admin_router.post("/login")
-async def admin_login(login_data: AdminLogin, db):
+async def admin_login(login_data: AdminLogin, db=Depends(get_db)):
     admin = await db.admin_users.find_one({"username": login_data.username, "is_active": True})
     if not admin:
         raise HTTPException(status_code=401, detail="Invalid credentials")
