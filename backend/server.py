@@ -282,33 +282,58 @@ async def root():
     return {"message": "Pego Video Contest Platform API"}
 
 @api_router.post("/upload/initiate")
-async def initiate_upload(video_data: VideoCreate):
-    """Initiate video upload - creates video record first, payment later"""
+async def initiate_upload(request: Request, current_user: User = Depends(get_current_user)):
+    """Initiate video upload - requires authentication and sufficient credits"""
     try:
+        body = await request.json()
+        title = body.get("title")
+        description = body.get("description", "")
+        hashtags = body.get("hashtags", [])
+        
+        if not title:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Video title is required"
+            )
+        
+        # Check if user has enough credits (30 credits = 1 video)
+        user_credits = await auth_manager.get_user_credits(current_user.id)
+        required_credits = 30
+        
+        if user_credits < required_credits:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Insufficient credits. You have {user_credits} credits, need {required_credits} credits to upload"
+            )
+        
         # Get current competition round
         round_id = await get_current_competition_round()
         
-        # Create video record (unpaid)
-        video = VideoUpload(
+        # Create video record (unpaid initially)
+        video = Video(
             filename="",
             file_path="",
-            title=video_data.title,
-            description=video_data.description,
-            user_id=video_data.user_id,
+            title=title,
+            description=description,
+            hashtags=hashtags,
+            user_id=current_user.id,
             file_size=0,
             competition_round=round_id,
             is_paid=False
         )
         
         result = await db.videos.insert_one(video.dict())
-        video_id = video.id  # Use the custom UUID ID, not MongoDB ObjectId
+        video_id = video.id
         
         return {
             "video_id": video_id,
-            "message": "Video initiated successfully. Please select payment method."
+            "user_credits": user_credits,
+            "required_credits": required_credits,
+            "message": "Video initiated successfully. Ready for file upload."
         }
         
     except Exception as e:
+        logger.error(f"Video initiation failed: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to initiate upload: {str(e)}")
 
 @api_router.post("/payment/create")
