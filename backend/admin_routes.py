@@ -618,3 +618,438 @@ async def get_admin_logs(
         "limit": limit,
         "offset": offset
     }
+
+# Enhanced User Management
+@admin_router.get("/users/{user_id}")
+async def get_user_detail(
+    user_id: str,
+    admin: AdminUser = Depends(get_current_admin),
+    db=None
+):
+    """Get detailed user information"""
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Get user's videos
+    videos = await db.videos.find({"user_id": user_id}).to_list(None)
+    
+    # Get user's credit transactions
+    transactions = await db.credit_transactions.find({"user_id": user_id}).sort("created_at", -1).limit(50).to_list(50)
+    
+    # Calculate stats
+    total_spent = sum(abs(t["amount"]) for t in transactions if t["amount"] < 0)
+    total_topped_up = sum(t["amount"] for t in transactions if t["amount"] > 0)
+    total_views = sum(v.get("view_count", 0) for v in videos)
+    total_likes = sum(v.get("like_count", 0) for v in videos)
+    
+    return {
+        "user": user,
+        "stats": {
+            "video_count": len(videos),
+            "total_views": total_views,
+            "total_likes": total_likes,
+            "total_spent_credits": total_spent,
+            "total_topped_up_credits": total_topped_up,
+            "current_credits": user.get("credits", 0)
+        },
+        "recent_videos": videos[:10],  # Last 10 videos
+        "recent_transactions": transactions[:20]  # Last 20 transactions
+    }
+
+@admin_router.post("/users/{user_id}/ban")
+async def ban_user(
+    user_id: str,
+    reason: str = "",
+    admin: AdminUser = Depends(get_current_admin),
+    db=None
+):
+    """Ban a user"""
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Ban user
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"is_active": False, "banned_at": datetime.utcnow(), "ban_reason": reason}}
+    )
+    
+    # Suspend all user's videos
+    await db.videos.update_many(
+        {"user_id": user_id},
+        {"$set": {"status": VideoStatus.SUSPENDED}}
+    )
+    
+    # Log action
+    await log_admin_action(
+        db, admin.id, "ban_user", "user", user_id,
+        {"reason": reason, "username": user["username"]}
+    )
+    
+    return {"message": f"User {user['username']} has been banned"}
+
+@admin_router.post("/users/{user_id}/unban")
+async def unban_user(
+    user_id: str,
+    admin: AdminUser = Depends(get_current_admin),
+    db=None
+):
+    """Unban a user"""
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Unban user
+    await db.users.update_one(
+        {"id": user_id},
+        {
+            "$set": {"is_active": True},
+            "$unset": {"banned_at": "", "ban_reason": ""}
+        }
+    )
+    
+    # Reactivate user's videos (except those manually suspended)
+    await db.videos.update_many(
+        {"user_id": user_id, "status": VideoStatus.SUSPENDED},
+        {"$set": {"status": VideoStatus.ACTIVE}}
+    )
+    
+    # Log action
+    await log_admin_action(
+        db, admin.id, "unban_user", "user", user_id,
+        {"username": user["username"]}
+    )
+    
+    return {"message": f"User {user['username']} has been unbanned"}
+
+@admin_router.post("/users/{user_id}/credits/adjust")
+async def adjust_user_credits(
+    user_id: str,
+    request: Request,
+    admin: AdminUser = Depends(get_current_admin),
+    db=None
+):
+    """Adjust user's credit balance"""
+    body = await request.json()
+    amount = body.get("amount", 0)  # Can be positive or negative
+    reason = body.get("reason", "Admin adjustment")
+    
+    if amount == 0:
+        raise HTTPException(status_code=400, detail="Amount cannot be zero")
+    
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Check if user would have negative credits after adjustment
+    current_credits = user.get("credits", 0)
+    if current_credits + amount < 0:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Cannot adjust credits. User has {current_credits} credits, adjustment would result in negative balance"
+        )
+    
+    # Update user credits
+    await db.users.update_one(
+        {"id": user_id},
+        {"$inc": {"credits": amount}}
+    )
+    
+    # Record transaction
+    transaction = CreditTransaction(
+        user_id=user_id,
+        amount=amount,
+        transaction_type="admin_adjustment",
+        description=f"Admin adjustment: {reason}",
+        status="completed"
+    )
+    await db.credit_transactions.insert_one(transaction.dict())
+    
+    # Log action
+    await log_admin_action(
+        db, admin.id, "adjust_user_credits", "user", user_id,
+        {"amount": amount, "reason": reason, "username": user["username"]}
+    )
+    
+    new_balance = current_credits + amount
+    return {
+        "message": f"Credits adjusted successfully",
+        "previous_balance": current_credits,
+        "adjustment": amount,
+        "new_balance": new_balance
+    }
+
+# Enhanced Video Management
+@admin_router.delete("/videos/{video_id}")
+async def delete_video(
+    video_id: str,
+    reason: str = "",
+    admin: AdminUser = Depends(get_current_admin),
+    db=None
+):
+    """Permanently delete a video"""
+    video = await db.videos.find_one({"id": video_id})
+    if not video:
+        raise HTTPException(status_code=404, detail="Video not found")
+    
+    # Delete video file from filesystem
+    import os
+    from pathlib import Path
+    if video.get("file_path") and os.path.exists(video["file_path"]):
+        try:
+            os.remove(video["file_path"])
+        except Exception as e:
+            print(f"Error deleting video file: {e}")
+    
+    # Delete from database
+    await db.videos.delete_one({"id": video_id})
+    
+    # Delete related interactions
+    await db.video_interactions.delete_many({"video_id": video_id})
+    
+    # Log action
+    await log_admin_action(
+        db, admin.id, "delete_video", "video", video_id,
+        {"reason": reason, "title": video.get("title", ""), "user_id": video.get("user_id", "")}
+    )
+    
+    return {"message": "Video deleted successfully"}
+
+@admin_router.get("/videos/{video_id}/analytics")
+async def get_video_analytics(
+    video_id: str,
+    admin: AdminUser = Depends(get_current_admin),
+    db=None
+):
+    """Get detailed analytics for a video"""
+    video = await db.videos.find_one({"id": video_id})
+    if not video:
+        raise HTTPException(status_code=404, detail="Video not found")
+    
+    # Get interactions
+    interactions = await db.video_interactions.find({"video_id": video_id}).to_list(None)
+    
+    # Analyze interactions
+    interaction_stats = {}
+    hourly_views = {}
+    
+    for interaction in interactions:
+        interaction_type = interaction["interaction_type"]
+        created_at = interaction["created_at"]
+        hour = created_at.strftime("%Y-%m-%d %H:00")
+        
+        # Count by type
+        interaction_stats[interaction_type] = interaction_stats.get(interaction_type, 0) + 1
+        
+        # Hourly views
+        if interaction_type == "view":
+            hourly_views[hour] = hourly_views.get(hour, 0) + 1
+    
+    # Get user info
+    user = await db.users.find_one({"id": video["user_id"]})
+    
+    return {
+        "video": video,
+        "user": user,
+        "total_interactions": len(interactions),
+        "interaction_breakdown": interaction_stats,
+        "hourly_views": hourly_views,
+        "engagement_rate": round((interaction_stats.get("like", 0) + interaction_stats.get("comment", 0)) / max(interaction_stats.get("view", 1), 1) * 100, 2)
+    }
+
+# Financial Management
+@admin_router.get("/financial/overview")
+async def get_financial_overview(
+    days: int = Query(30, le=365),
+    admin: AdminUser = Depends(get_current_admin),
+    db=None
+):
+    """Get financial overview and statistics"""
+    start_date = datetime.utcnow() - timedelta(days=days)
+    
+    # Get all credit transactions
+    transactions = await db.credit_transactions.find({
+        "created_at": {"$gte": start_date}
+    }).to_list(None)
+    
+    # Get all competition rounds
+    competitions = await db.competition_rounds.find({
+        "start_date": {"$gte": start_date}
+    }).to_list(None)
+    
+    # Calculate totals
+    total_revenue = sum(comp.get("total_revenue", 0) for comp in competitions)
+    total_prizes = sum(comp.get("prize_pool", 0) for comp in competitions)
+    admin_revenue = total_revenue - total_prizes
+    
+    # Credit analysis
+    credit_topups = [t for t in transactions if t["amount"] > 0]
+    credit_spending = [t for t in transactions if t["amount"] < 0]
+    
+    total_credits_sold = sum(t["amount"] for t in credit_topups)
+    total_credits_spent = sum(abs(t["amount"]) for t in credit_spending)
+    
+    # Daily breakdown
+    daily_revenue = {}
+    for comp in competitions:
+        date = comp["start_date"].strftime("%Y-%m-%d")
+        daily_revenue[date] = daily_revenue.get(date, 0) + comp.get("total_revenue", 0)
+    
+    return {
+        "period": f"Last {days} days",
+        "overview": {
+            "total_revenue": total_revenue,
+            "total_prizes_paid": total_prizes,
+            "admin_revenue": admin_revenue,
+            "profit_margin": round((admin_revenue / max(total_revenue, 1)) * 100, 2)
+        },
+        "credits": {
+            "total_sold": total_credits_sold,
+            "total_spent": total_credits_spent,
+            "credits_in_circulation": total_credits_sold - total_credits_spent
+        },
+        "daily_revenue": daily_revenue,
+        "active_competitions": await db.competition_rounds.count_documents({"is_active": True}),
+        "total_users": await db.users.count_documents({}),
+        "active_users": await db.users.count_documents({"last_active": {"$gte": start_date}})
+    }
+
+@admin_router.get("/financial/settings")
+async def get_financial_settings(admin: AdminUser = Depends(get_current_admin), db=None):
+    """Get current financial settings"""
+    settings = await db.system_settings.find_one({"type": "financial"})
+    if not settings:
+        # Return default settings
+        return {
+            "video_upload_price": 30.0,
+            "prize_pool_percentage": 70.0,
+            "admin_fee_percentage": 30.0,
+            "credits_per_thb": 1,
+            "min_payout_amount": 100.0
+        }
+    return settings.get("settings", {})
+
+@admin_router.put("/financial/settings")
+async def update_financial_settings(
+    settings: FinancialSettings,
+    admin: AdminUser = Depends(get_current_admin),
+    db=None
+):
+    """Update financial settings"""
+    # Validate settings
+    if settings.prize_pool_percentage + settings.admin_fee_percentage != 100.0:
+        raise HTTPException(
+            status_code=400,
+            detail="Prize pool percentage and admin fee percentage must sum to 100%"
+        )
+    
+    # Update settings
+    await db.system_settings.update_one(
+        {"type": "financial"},
+        {
+            "$set": {
+                "type": "financial",
+                "settings": settings.dict(),
+                "updated_at": datetime.utcnow(),
+                "updated_by": admin.id
+            }
+        },
+        upsert=True
+    )
+    
+    # Log action
+    await log_admin_action(
+        db, admin.id, "update_financial_settings", "system", "financial_settings",
+        settings.dict()
+    )
+    
+    return {"message": "Financial settings updated successfully"}
+
+# System Settings
+@admin_router.get("/system/settings")
+async def get_system_settings(admin: AdminUser = Depends(get_current_admin), db=None):
+    """Get system settings"""
+    settings = await db.system_settings.find_one({"type": "system"})
+    if not settings:
+        return {
+            "video_price": 30.0,
+            "prize_percentage": 70.0,
+            "competition_duration_days": 7,
+            "max_video_size_mb": 100,
+            "credits_per_thb": 1
+        }
+    return settings.get("settings", {})
+
+@admin_router.put("/system/settings")
+async def update_system_settings(
+    settings: SystemSettings,
+    admin: AdminUser = Depends(get_current_admin),
+    db=None
+):
+    """Update system settings"""
+    await db.system_settings.update_one(
+        {"type": "system"},
+        {
+            "$set": {
+                "type": "system",
+                "settings": settings.dict(),
+                "updated_at": datetime.utcnow(),
+                "updated_by": admin.id
+            }
+        },
+        upsert=True
+    )
+    
+    # Log action
+    await log_admin_action(
+        db, admin.id, "update_system_settings", "system", "system_settings",
+        settings.dict()
+    )
+    
+    return {"message": "System settings updated successfully"}
+
+# Statistics and Analytics
+@admin_router.get("/analytics/users")
+async def get_user_analytics(
+    days: int = Query(30, le=365),
+    admin: AdminUser = Depends(get_current_admin),
+    db=None
+):
+    """Get user analytics"""
+    start_date = datetime.utcnow() - timedelta(days=days)
+    
+    # User growth
+    total_users = await db.users.count_documents({})
+    new_users = await db.users.count_documents({"created_at": {"$gte": start_date}})
+    active_users = await db.users.count_documents({"last_active": {"$gte": start_date}})
+    
+    # Top users by activity
+    pipeline = [
+        {"$match": {"created_at": {"$gte": start_date}}},
+        {"$lookup": {
+            "from": "videos",
+            "localField": "id",
+            "foreignField": "user_id",
+            "as": "videos"
+        }},
+        {"$addFields": {
+            "video_count": {"$size": "$videos"},
+            "total_views": {"$sum": "$videos.view_count"}
+        }},
+        {"$sort": {"total_views": -1}},
+        {"$limit": 10}
+    ]
+    
+    top_users = await db.users.aggregate(pipeline).to_list(10)
+    
+    return {
+        "period": f"Last {days} days",
+        "summary": {
+            "total_users": total_users,
+            "new_users": new_users,
+            "active_users": active_users,
+            "retention_rate": round((active_users / max(total_users, 1)) * 100, 2)
+        },
+        "top_creators": top_users
+    }
