@@ -1052,74 +1052,31 @@ const MainApp = () => {
     </div>
   );
 };
-  const [currentView, setCurrentView] = useState('feed');
-  const { isInstalled, isOnline } = usePWA();
-
-  // Check URL parameters for direct navigation
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('session_id')) {
-      setCurrentView('payment-success');
-    }
-  }, []);
-
-  const renderContent = () => {
-    switch (currentView) {
-      case 'feed':
-        return <TikTokFeed />;
-      case 'discover':
-        return (
-          <div className="h-screen bg-black text-white flex items-center justify-center">
-            <div className="text-center">
-              <div className="text-6xl mb-4">🔍</div>
-              <h2 className="text-2xl font-bold">ค้นหา</h2>
-              <p className="text-gray-400 mt-2">ฟีเจอร์กำลังพัฒนา</p>
-            </div>
-          </div>
-        );
-      case 'upload':
-        return <EnhancedVideoUpload />;
-      case 'inbox':
-        return (
-          <div className="h-screen bg-black text-white flex items-center justify-center">
-            <div className="text-center">
-              <div className="text-6xl mb-4">💬</div>
-              <h2 className="text-2xl font-bold">กล่องข้อความ</h2>
-              <p className="text-gray-400 mt-2">ฟีเจอร์กำลังพัฒนา</p>
-            </div>
-          </div>
-        );
-      case 'profile':
-        return (
-          <div className="h-screen bg-black text-white flex items-center justify-center">
-            <div className="text-center">
-              <div className="text-6xl mb-4">👤</div>
-              <h2 className="text-2xl font-bold">โปรไฟล์</h2>
-              <p className="text-gray-400 mt-2">ฟีเจอร์กำลังพัฒนา</p>
-            </div>
-          </div>
-        );
-      default:
-        return <TikTokFeed />;
-    }
-  };
-
+// Main App Component wrapped with Providers
+function App() {
   return (
-    <div className="h-screen bg-black overflow-hidden">
-      {/* PWA Components */}
-      <OfflineIndicator />
-      <PWAUpdatePrompt />
-      
-      {/* Main Content */}
-      {renderContent()}
-
-      {/* Bottom Navigation */}
-      <TikTokNavigation currentView={currentView} setCurrentView={setCurrentView} />
-
-      {/* PWA Install Prompt */}
-      <PWAInstallPrompt />
-    </div>
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      <AuthProvider>
+        <div className="App">
+          <Toaster
+            position="top-center"
+            toastOptions={{
+              duration: 3000,
+              style: {
+                background: '#1f2937',
+                color: '#fff',
+                border: '1px solid #374151'
+              }
+            }}
+          />
+          <MainApp />
+          <PWAInstallPrompt />
+          <PWAUpdatePrompt />
+          <OfflineIndicator />
+        </div>
+      </AuthProvider>
+    </GoogleOAuthProvider>
   );
-};
+}
 
 export default App;
