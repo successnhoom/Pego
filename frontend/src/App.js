@@ -569,6 +569,11 @@ const EnhancedVideoUpload = () => {
   const [previewUrl, setPreviewUrl] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [message, setMessage] = useState('');
+  const [step, setStep] = useState(1); // 1: form, 2: payment selection, 3: payment processing
+  const [videoId, setVideoId] = useState('');
+  const [paymentMethods, setPaymentMethods] = useState([]);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('');
+  const [paymentSession, setPaymentSession] = useState(null);
 
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
@@ -579,7 +584,7 @@ const EnhancedVideoUpload = () => {
     }
   };
 
-  const handleUpload = async (e) => {
+  const handleInitiateUpload = async (e) => {
     e.preventDefault();
     if (!title || !selectedFile || !userId) {
       setMessage('กรุณากรอกข้อมูลให้ครบถ้วน');
@@ -587,21 +592,299 @@ const EnhancedVideoUpload = () => {
     }
 
     setIsUploading(true);
-    setMessage('กำลังเตรียมการชำระเงิน...');
+    setMessage('กำลังเตรียมข้อมูล...');
 
     try {
-      const response = await axios.post(`${API}/upload/initiate`, {
+      // Step 1: Initiate video upload
+      const uploadResponse = await axios.post(`${API}/upload/initiate`, {
         title,
         description: `${description} ${hashtags}`,
         user_id: userId
       });
 
-      // Redirect to payment
-      window.location.href = response.data.checkout_url;
+      setVideoId(uploadResponse.data.video_id);
+
+      // Step 2: Get payment methods
+      const methodsResponse = await axios.get(`${API}/payment/methods`);
+      setPaymentMethods(methodsResponse.data.payment_methods);
+      
+      setStep(2);
+      setMessage('');
+      setIsUploading(false);
 
     } catch (error) {
       setMessage('เกิดข้อผิดพลาด: ' + error.response?.data?.detail || error.message);
       setIsUploading(false);
+    }
+  };
+
+  const handlePaymentMethodSelection = async (methodId) => {
+    setSelectedPaymentMethod(methodId);
+    setIsUploading(true);
+    setMessage('กำลังสร้างการชำระเงิน...');
+
+    try {
+      const paymentResponse = await axios.post(`${API}/payment/create`, {
+        video_id: videoId,
+        payment_method: methodId,
+        user_id: userId
+      });
+
+      setPaymentSession(paymentResponse.data);
+      setStep(3);
+      setMessage('');
+
+      if (methodId === 'stripe') {
+        // Redirect to Stripe checkout
+        window.location.href = paymentResponse.data.checkout_url;
+      } else if (methodId === 'promptpay') {
+        // Show PromptPay QR code
+        setIsUploading(false);
+      }
+
+    } catch (error) {
+      setMessage('เกิดข้อผิดพลาด: ' + error.response?.data?.detail || error.message);
+      setIsUploading(false);
+    }
+  };
+
+  const handlePromptPayConfirm = async () => {
+    setIsUploading(true);
+    setMessage('กำลังยืนยันการชำระเงิน...');
+
+    try {
+      await axios.post(`${API}/payment/confirm/promptpay/${paymentSession.session_id}`);
+      setMessage('✅ ชำระเงินสำเร็จ! กำลังดำเนินการอัพโหลดวิดีโอ...');
+      
+      // Upload video file
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+
+      await axios.post(`${API}/upload/video/${videoId}`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        }
+      });
+
+      setMessage('🎉 อัพโหลดวิดีโอสำเร็จ!');
+      setTimeout(() => {
+        setStep(1);
+        setTitle('');
+        setDescription('');
+        setHashtags('');
+        setUserId('');
+        setSelectedFile(null);
+        setPreviewUrl('');
+        setMessage('');
+        setVideoId('');
+        setPaymentSession(null);
+      }, 3000);
+
+    } catch (error) {
+      setMessage('เกิดข้อผิดพลาด: ' + error.response?.data?.detail || error.message);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const renderStep = () => {
+    switch (step) {
+      case 1:
+        return (
+          <form onSubmit={handleInitiateUpload} className="space-y-6">
+            {/* Video Preview */}
+            {previewUrl && (
+              <div className="relative aspect-video bg-gray-800 rounded-lg overflow-hidden">
+                <video
+                  src={previewUrl}
+                  className="w-full h-full object-cover"
+                  controls
+                  muted
+                />
+              </div>
+            )}
+
+            {/* File Upload */}
+            <div>
+              <label className="block text-sm font-medium mb-2">เลือกวิดีโอ</label>
+              <input
+                type="file"
+                accept="video/*"
+                onChange={handleFileSelect}
+                className="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-purple-600 file:text-white hover:file:bg-purple-700"
+              />
+            </div>
+
+            {/* Title */}
+            <div>
+              <label className="block text-sm font-medium mb-2">หัวข้อวิดีโอ</label>
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                placeholder="เช่น สอนทำอาหารไทย"
+              />
+            </div>
+
+            {/* Description */}
+            <div>
+              <label className="block text-sm font-medium mb-2">คำอธิบาย</label>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows="3"
+                className="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                placeholder="อธิบายเนื้อหาในวิดีโอ..."
+              />
+            </div>
+
+            {/* Hashtags */}
+            <div>
+              <label className="block text-sm font-medium mb-2">แฮชแท็ก</label>
+              <input
+                type="text"
+                value={hashtags}
+                onChange={(e) => setHashtags(e.target.value)}
+                className="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                placeholder="#อาหาร #ทำกิน #สูตรลับ"
+              />
+            </div>
+
+            {/* User ID */}
+            <div>
+              <label className="block text-sm font-medium mb-2">User ID</label>
+              <input
+                type="text"
+                value={userId}
+                onChange={(e) => setUserId(e.target.value)}
+                className="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                placeholder="กรอก User ID ของคุณ"
+              />
+            </div>
+
+            {/* Competition Info */}
+            <div className="bg-gradient-to-r from-purple-900 to-pink-900 p-4 rounded-lg">
+              <h3 className="font-bold text-lg mb-2">🏆 การแข่งขันวิดีโอ</h3>
+              <div className="space-y-1 text-sm">
+                <p>💰 ค่าสมัคร: 30 บาท</p>
+                <p>🥇 Top 1,000 วิดีโอได้รับ 70% ของเงินรางวัล</p>
+                <p>⏰ รอบการแข่งขัน: 7 วัน</p>
+                <p>📊 อันดับตามจำนวนการดู</p>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isUploading}
+              className={`w-full py-4 px-4 rounded-lg font-bold text-lg transition-all ${
+                isUploading
+                  ? 'bg-gray-600 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-lg hover:shadow-xl'
+              }`}
+            >
+              {isUploading ? 'กำลังดำเนินการ...' : '📝 ถัดไป - เลือกวิธีชำระเงิน'}
+            </button>
+          </form>
+        );
+
+      case 2:
+        return (
+          <div className="space-y-6">
+            <div className="text-center">
+              <h3 className="text-2xl font-bold mb-2">เลือกวิธีชำระเงิน</h3>
+              <p className="text-gray-400">ค่าสมัครการแข่งขัน 30 บาท</p>
+            </div>
+
+            <div className="space-y-4">
+              {paymentMethods.map((method) => (
+                <button
+                  key={method.id}
+                  onClick={() => handlePaymentMethodSelection(method.id)}
+                  disabled={isUploading}
+                  className={`w-full p-4 rounded-lg border-2 transition-all ${
+                    selectedPaymentMethod === method.id
+                      ? 'border-purple-500 bg-purple-900'
+                      : 'border-gray-600 hover:border-purple-400'
+                  } ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  <div className="flex items-center space-x-4">
+                    <div className="text-3xl">{method.icon}</div>
+                    <div className="flex-1 text-left">
+                      <h4 className="font-bold">{method.name}</h4>
+                      <p className="text-sm text-gray-400">{method.description}</p>
+                    </div>
+                    <div className="text-purple-400">→</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={() => setStep(1)}
+              className="w-full py-3 px-4 rounded-lg border border-gray-600 text-gray-400 hover:text-white hover:border-gray-400 transition-all"
+            >
+              ← กลับไปแก้ไขข้อมูล
+            </button>
+          </div>
+        );
+
+      case 3:
+        if (selectedPaymentMethod === 'promptpay') {
+          return (
+            <div className="space-y-6">
+              <div className="text-center">
+                <h3 className="text-2xl font-bold mb-2">ชำระเงินผ่าน PromptPay</h3>
+                <p className="text-gray-400">สแกน QR Code เพื่อชำระเงิน 30 บาท</p>
+              </div>
+
+              {paymentSession && (
+                <div className="bg-white p-6 rounded-lg">
+                  <img
+                    src={paymentSession.qr_code}
+                    alt="PromptPay QR Code"
+                    className="w-full max-w-sm mx-auto"
+                  />
+                </div>
+              )}
+
+              <div className="text-center text-sm text-gray-400">
+                <p>สแกน QR Code ด้วยแอปธนาคารของคุณ</p>
+                <p>หรือแอป PromptPay อื่นๆ</p>
+              </div>
+
+              <button
+                onClick={handlePromptPayConfirm}
+                disabled={isUploading}
+                className={`w-full py-4 px-4 rounded-lg font-bold text-lg transition-all ${
+                  isUploading
+                    ? 'bg-gray-600 cursor-not-allowed'
+                    : 'bg-green-600 hover:bg-green-700 shadow-lg hover:shadow-xl'
+                }`}
+              >
+                {isUploading ? 'กำลังยืนยัน...' : '✅ ยืนยันการชำระเงินแล้ว'}
+              </button>
+
+              <button
+                onClick={() => setStep(2)}
+                className="w-full py-3 px-4 rounded-lg border border-gray-600 text-gray-400 hover:text-white hover:border-gray-400 transition-all"
+              >
+                ← เปลี่ยนวิธีชำระเงิน
+              </button>
+            </div>
+          );
+        }
+
+        return (
+          <div className="text-center space-y-4">
+            <div className="text-6xl">🔄</div>
+            <h3 className="text-2xl font-bold">กำลังประมวลผล...</h3>
+            <p className="text-gray-400">กำลังเปลี่ยนเส้นทางไปยังหน้าชำระเงิน</p>
+          </div>
+        );
+
+      default:
+        return null;
     }
   };
 
@@ -610,110 +893,15 @@ const EnhancedVideoUpload = () => {
       <div className="max-w-md mx-auto">
         <h2 className="text-2xl font-bold text-center mb-6">สร้างวิดีโอ 🎬</h2>
         
-        <form onSubmit={handleUpload} className="space-y-6">
-          {/* Video Preview */}
-          {previewUrl && (
-            <div className="relative aspect-video bg-gray-800 rounded-lg overflow-hidden">
-              <video
-                src={previewUrl}
-                className="w-full h-full object-cover"
-                controls
-                muted
-              />
-            </div>
-          )}
-
-          {/* File Upload */}
-          <div>
-            <label className="block text-sm font-medium mb-2">เลือกวิดีโอ</label>
-            <input
-              type="file"
-              accept="video/*"
-              onChange={handleFileSelect}
-              className="w-full px-3 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-purple-600 file:text-white"
-            />
-            <p className="text-gray-400 text-xs mt-1">สูงสุด 3 นาที, 100MB</p>
-          </div>
-
-          {/* Title */}
-          <div>
-            <label className="block text-sm font-medium mb-2">ชื่อวิดีโอ *</label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-3 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-purple-500"
-              placeholder="เขียนชื่อที่น่าสนใจ..."
-              maxLength={100}
-            />
-          </div>
-
-          {/* Description */}
-          <div>
-            <label className="block text-sm font-medium mb-2">รายละเอียด</label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="w-full px-3 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-purple-500"
-              placeholder="บอกเล่าเรื่องราวของคุณ..."
-              rows={3}
-              maxLength={300}
-            />
-          </div>
-
-          {/* Hashtags */}
-          <div>
-            <label className="block text-sm font-medium mb-2">แฮชแท็ก</label>
-            <input
-              type="text"
-              value={hashtags}
-              onChange={(e) => setHashtags(e.target.value)}
-              className="w-full px-3 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-purple-500"
-              placeholder="#แฮชแท็ก #ของคุณ #ที่นี่"
-            />
-          </div>
-
-          {/* User ID */}
-          <div>
-            <label className="block text-sm font-medium mb-2">User ID *</label>
-            <input
-              type="text"
-              value={userId}
-              onChange={(e) => setUserId(e.target.value)}
-              className="w-full px-3 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-purple-500"
-              placeholder="ใส่ User ID ของคุณ"
-            />
-          </div>
-
-          {/* Prize Info */}
-          <div className="bg-gradient-to-r from-purple-900 to-pink-900 rounded-lg p-4">
-            <div className="text-center">
-              <div className="text-3xl mb-2">🏆</div>
-              <h3 className="font-bold text-lg mb-2">ลุ้นรางวัลใหญ่!</h3>
-              <div className="space-y-1 text-sm text-gray-300">
-                <p>💰 ค่าอัพโหลด: <span className="text-yellow-400 font-bold">30 บาท</span></p>
-                <p>🎯 วิดีโอ Top 1,000 รับรางวัล 70%</p>
-                <p>⏰ แข่งขันทุกรอบ 7 วัน</p>
-              </div>
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            disabled={isUploading}
-            className={`w-full py-4 px-4 rounded-lg font-bold text-lg transition-all ${
-              isUploading
-                ? 'bg-gray-600 cursor-not-allowed'
-                : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-lg hover:shadow-xl'
-            }`}
-          >
-            {isUploading ? 'กำลังดำเนินการ...' : '🚀 ชำระเงินและอัพโหลด 30฿'}
-          </button>
-        </form>
+        {renderStep()}
 
         {message && (
           <div className={`mt-4 p-3 rounded-lg ${
-            message.includes('ข้อผิดพลาด') ? 'bg-red-900 text-red-300' : 'bg-blue-900 text-blue-300'
+            message.includes('สำเร็จ') || message.includes('✅') || message.includes('🎉')
+              ? 'bg-green-900 text-green-200 border border-green-700'
+              : message.includes('ข้อผิดพลาด')
+              ? 'bg-red-900 text-red-200 border border-red-700'
+              : 'bg-blue-900 text-blue-200 border border-blue-700'
           }`}>
             {message}
           </div>
