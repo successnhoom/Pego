@@ -128,6 +128,27 @@ class CompetitionRound(BaseModel):
     winners: List[Dict] = []
 
 # Helper functions
+def serialize_doc(doc):
+    """Convert MongoDB document to JSON-serializable format"""
+    if doc is None:
+        return None
+    if isinstance(doc, list):
+        return [serialize_doc(item) for item in doc]
+    if isinstance(doc, dict):
+        # Remove MongoDB's _id field and convert ObjectId to string if present
+        result = {}
+        for key, value in doc.items():
+            if key == '_id':
+                continue  # Skip MongoDB's _id field
+            if hasattr(value, '__dict__'):
+                result[key] = serialize_doc(value.__dict__)
+            elif isinstance(value, (list, dict)):
+                result[key] = serialize_doc(value)
+            else:
+                result[key] = value
+        return result
+    return doc
+
 async def get_current_competition_round():
     """Get or create the current active competition round"""
     now = datetime.utcnow()
