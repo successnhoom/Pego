@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, File, UploadFile, HTTPException, Request, Form, status
+from fastapi import FastAPI, APIRouter, File, UploadFile, HTTPException, Request, Form, status, Depends
 from fastapi.responses import StreamingResponse, FileResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from starlette.middleware.sessions import SessionMiddleware
