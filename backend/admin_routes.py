@@ -791,7 +791,7 @@ async def delete_video(
     video_id: str,
     reason: str = "",
     admin: AdminUser = Depends(get_current_admin),
-    db=None
+    db=Depends(get_db)
 ):
     """Permanently delete a video"""
     video = await db.videos.find_one({"id": video_id})
