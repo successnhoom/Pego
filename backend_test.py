@@ -60,15 +60,51 @@ class PegoAPITester:
             self.log_test("Root Endpoint", False, "", str(e))
             return False
 
-    def test_upload_initiation(self):
-        """Test video upload initiation and payment session creation"""
+    def test_payment_methods_api(self):
+        """Test /api/payment/methods endpoint"""
         try:
-            # Test data
-            user_id = str(uuid.uuid4())
+            response = self.session.get(f"{self.base_url}/payment/methods")
+            
+            if response.status_code == 200:
+                data = response.json()
+                required_fields = ["payment_methods", "amount", "currency"]
+                
+                if all(field in data for field in required_fields):
+                    methods = data["payment_methods"]
+                    
+                    # Check if both Stripe and PromptPay are available
+                    method_ids = [method["id"] for method in methods]
+                    has_stripe = "stripe" in method_ids
+                    has_promptpay = "promptpay" in method_ids
+                    
+                    if has_stripe and has_promptpay:
+                        self.log_test("Payment Methods API", True, 
+                                    f"Both payment methods available: {method_ids}, Amount: {data['amount']} {data['currency']}")
+                        return data
+                    else:
+                        self.log_test("Payment Methods API", False, "", 
+                                    f"Missing payment methods. Available: {method_ids}")
+                        return None
+                else:
+                    self.log_test("Payment Methods API", False, "", 
+                                f"Missing required fields. Got: {list(data.keys())}")
+                    return None
+            else:
+                self.log_test("Payment Methods API", False, "", 
+                            f"Status: {response.status_code}, Response: {response.text}")
+                return None
+                
+        except Exception as e:
+            self.log_test("Payment Methods API", False, "", str(e))
+            return None
+
+    def test_video_upload_initiation(self):
+        """Test /api/upload/initiate endpoint"""
+        try:
             video_data = {
-                "title": "Test Video Upload",
-                "description": "Testing video upload functionality",
-                "user_id": user_id
+                "title": "Test Payment Integration Video",
+                "description": "Testing dual payment system with Stripe and PromptPay",
+                "user_id": self.test_user_id
             }
             
             response = self.session.post(
@@ -78,75 +114,251 @@ class PegoAPITester:
             
             if response.status_code == 200:
                 data = response.json()
-                required_fields = ["video_id", "checkout_url", "session_id"]
+                required_fields = ["video_id", "message"]
                 
                 if all(field in data for field in required_fields):
-                    self.log_test("Upload Initiation", True, 
-                                f"Created video_id: {data['video_id']}, session_id: {data['session_id']}")
+                    self.test_video_id = data["video_id"]
+                    self.log_test("Video Upload Initiation", True, 
+                                f"Created video_id: {data['video_id']}")
                     return data
                 else:
-                    self.log_test("Upload Initiation", False, "", 
+                    self.log_test("Video Upload Initiation", False, "", 
                                 f"Missing required fields. Got: {list(data.keys())}")
                     return None
             else:
-                self.log_test("Upload Initiation", False, "", 
+                self.log_test("Video Upload Initiation", False, "", 
                             f"Status: {response.status_code}, Response: {response.text}")
                 return None
                 
         except Exception as e:
-            self.log_test("Upload Initiation", False, "", str(e))
+            self.log_test("Video Upload Initiation", False, "", str(e))
             return None
 
-    def test_payment_status_check(self, session_id):
-        """Test payment status checking"""
+    def test_stripe_payment_flow(self):
+        """Test Stripe payment creation and status checking"""
+        if not self.test_video_id:
+            self.log_test("Stripe Payment Flow", False, "", "No video_id available")
+            return None
+            
         try:
-            response = self.session.get(f"{self.base_url}/payment/status/{session_id}")
+            # Create Stripe payment session
+            payment_data = {
+                "video_id": self.test_video_id,
+                "payment_method": "stripe",
+                "user_id": self.test_user_id
+            }
+            
+            response = self.session.post(
+                f"{self.base_url}/payment/create",
+                json=payment_data
+            )
             
             if response.status_code == 200:
                 data = response.json()
-                required_fields = ["session_id", "status", "payment_status"]
+                required_fields = ["payment_method", "checkout_url", "session_id"]
                 
                 if all(field in data for field in required_fields):
-                    self.log_test("Payment Status Check", True, 
-                                f"Status: {data['status']}, Payment: {data['payment_status']}")
-                    return data
+                    if data["payment_method"] == "stripe" and data["checkout_url"]:
+                        session_id = data["session_id"]
+                        
+                        # Test payment status check
+                        status_response = self.session.get(
+                            f"{self.base_url}/payment/status/stripe/{session_id}"
+                        )
+                        
+                        if status_response.status_code == 200:
+                            status_data = status_response.json()
+                            required_status_fields = ["session_id", "status", "payment_status", "payment_method"]
+                            
+                            if all(field in status_data for field in required_status_fields):
+                                self.log_test("Stripe Payment Flow", True, 
+                                            f"Payment session created: {session_id}, Status: {status_data['status']}")
+                                return {"session_id": session_id, "status_data": status_data}
+                            else:
+                                self.log_test("Stripe Payment Flow", False, "", 
+                                            f"Missing status fields: {list(status_data.keys())}")
+                                return None
+                        else:
+                            self.log_test("Stripe Payment Flow", False, "", 
+                                        f"Status check failed: {status_response.status_code}")
+                            return None
+                    else:
+                        self.log_test("Stripe Payment Flow", False, "", 
+                                    f"Invalid Stripe response: {data}")
+                        return None
                 else:
-                    self.log_test("Payment Status Check", False, "", 
-                                f"Missing required fields. Got: {list(data.keys())}")
+                    self.log_test("Stripe Payment Flow", False, "", 
+                                f"Missing required fields: {list(data.keys())}")
                     return None
             else:
-                self.log_test("Payment Status Check", False, "", 
+                self.log_test("Stripe Payment Flow", False, "", 
                             f"Status: {response.status_code}, Response: {response.text}")
                 return None
                 
         except Exception as e:
-            self.log_test("Payment Status Check", False, "", str(e))
+            self.log_test("Stripe Payment Flow", False, "", str(e))
             return None
 
-    def test_video_upload_without_payment(self, video_id):
-        """Test video upload without payment (should fail)"""
+    def test_promptpay_payment_flow(self):
+        """Test PromptPay payment creation, QR code generation, and confirmation"""
+        if not self.test_video_id:
+            self.log_test("PromptPay Payment Flow", False, "", "No video_id available")
+            return None
+            
         try:
-            # Create a dummy file for testing
-            files = {'file': ('test_video.mp4', b'fake video content', 'video/mp4')}
+            # Create PromptPay payment session
+            payment_data = {
+                "video_id": self.test_video_id,
+                "payment_method": "promptpay",
+                "user_id": self.test_user_id
+            }
             
             response = self.session.post(
-                f"{self.base_url}/upload/video/{video_id}",
+                f"{self.base_url}/payment/create",
+                json=payment_data
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                required_fields = ["payment_method", "session_id", "qr_code", "amount", "currency", "expires_at", "instructions"]
+                
+                if all(field in data for field in required_fields):
+                    if data["payment_method"] == "promptpay":
+                        session_id = data["session_id"]
+                        qr_code = data["qr_code"]
+                        
+                        # Validate QR code format (should be base64 image)
+                        if qr_code.startswith("data:image/png;base64,"):
+                            # Test payment status check
+                            status_response = self.session.get(
+                                f"{self.base_url}/payment/status/promptpay/{session_id}"
+                            )
+                            
+                            if status_response.status_code == 200:
+                                status_data = status_response.json()
+                                required_status_fields = ["session_id", "status", "payment_method", "qr_code"]
+                                
+                                if all(field in status_data for field in required_status_fields):
+                                    # Test payment confirmation
+                                    confirm_response = self.session.post(
+                                        f"{self.base_url}/payment/confirm/promptpay/{session_id}"
+                                    )
+                                    
+                                    if confirm_response.status_code == 200:
+                                        confirm_data = confirm_response.json()
+                                        if "message" in confirm_data and "session_id" in confirm_data:
+                                            self.log_test("PromptPay Payment Flow", True, 
+                                                        f"Complete flow: Session {session_id}, QR generated, Payment confirmed")
+                                            return {"session_id": session_id, "confirmed": True}
+                                        else:
+                                            self.log_test("PromptPay Payment Flow", False, "", 
+                                                        f"Invalid confirmation response: {confirm_data}")
+                                            return None
+                                    else:
+                                        self.log_test("PromptPay Payment Flow", False, "", 
+                                                    f"Confirmation failed: {confirm_response.status_code}")
+                                        return None
+                                else:
+                                    self.log_test("PromptPay Payment Flow", False, "", 
+                                                f"Missing status fields: {list(status_data.keys())}")
+                                    return None
+                            else:
+                                self.log_test("PromptPay Payment Flow", False, "", 
+                                            f"Status check failed: {status_response.status_code}")
+                                return None
+                        else:
+                            self.log_test("PromptPay Payment Flow", False, "", 
+                                        f"Invalid QR code format: {qr_code[:50]}...")
+                            return None
+                    else:
+                        self.log_test("PromptPay Payment Flow", False, "", 
+                                    f"Wrong payment method: {data['payment_method']}")
+                        return None
+                else:
+                    self.log_test("PromptPay Payment Flow", False, "", 
+                                f"Missing required fields: {list(data.keys())}")
+                    return None
+            else:
+                self.log_test("PromptPay Payment Flow", False, "", 
+                            f"Status: {response.status_code}, Response: {response.text}")
+                return None
+                
+        except Exception as e:
+            self.log_test("PromptPay Payment Flow", False, "", str(e))
+            return None
+
+    def test_video_file_upload_after_payment(self):
+        """Test video file upload after payment confirmation"""
+        if not self.test_video_id:
+            self.log_test("Video File Upload After Payment", False, "", "No video_id available")
+            return False
+            
+        try:
+            # Create a test video file
+            test_video_content = b'fake video content for testing'
+            files = {'file': ('test_video.mp4', test_video_content, 'video/mp4')}
+            
+            response = self.session.post(
+                f"{self.base_url}/upload/video/{self.test_video_id}",
                 files=files
             )
             
-            # Should fail with 402 Payment Required
-            if response.status_code == 402:
-                self.log_test("Video Upload Without Payment", True, 
-                            "Correctly rejected unpaid upload")
-                return True
+            if response.status_code == 200:
+                data = response.json()
+                required_fields = ["message", "video_id", "filename"]
+                
+                if all(field in data for field in required_fields):
+                    self.log_test("Video File Upload After Payment", True, 
+                                f"Video uploaded successfully: {data['filename']}")
+                    return True
+                else:
+                    self.log_test("Video File Upload After Payment", False, "", 
+                                f"Missing required fields: {list(data.keys())}")
+                    return False
+            elif response.status_code == 402:
+                self.log_test("Video File Upload After Payment", False, "", 
+                            "Payment required - video not marked as paid")
+                return False
             else:
-                self.log_test("Video Upload Without Payment", False, "", 
-                            f"Expected 402, got {response.status_code}: {response.text}")
+                self.log_test("Video File Upload After Payment", False, "", 
+                            f"Status: {response.status_code}, Response: {response.text}")
                 return False
                 
         except Exception as e:
-            self.log_test("Video Upload Without Payment", False, "", str(e))
+            self.log_test("Video File Upload After Payment", False, "", str(e))
             return False
+
+    def test_competition_round_updates(self):
+        """Test that competition rounds are updated correctly after payments"""
+        try:
+            response = self.session.get(f"{self.base_url}/leaderboard")
+            
+            if response.status_code == 200:
+                data = response.json()
+                if "competition_info" in data:
+                    comp_info = data["competition_info"]
+                    required_fields = ["round_id", "total_prize_pool", "total_videos"]
+                    
+                    if all(field in comp_info for field in required_fields):
+                        self.log_test("Competition Round Updates", True, 
+                                    f"Round: {comp_info['round_id']}, Prize Pool: {comp_info['total_prize_pool']} THB, Videos: {comp_info['total_videos']}")
+                        return comp_info
+                    else:
+                        self.log_test("Competition Round Updates", False, "", 
+                                    f"Missing competition fields: {list(comp_info.keys())}")
+                        return None
+                else:
+                    self.log_test("Competition Round Updates", False, "", 
+                                "No competition_info in response")
+                    return None
+            else:
+                self.log_test("Competition Round Updates", False, "", 
+                            f"Status: {response.status_code}, Response: {response.text}")
+                return None
+                
+        except Exception as e:
+            self.log_test("Competition Round Updates", False, "", str(e))
+            return None
 
     def test_get_videos(self):
         """Test getting videos list"""
