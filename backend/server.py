@@ -754,13 +754,17 @@ async def get_leaderboard():
         # Get competition round info
         competition = await db.competition_rounds.find_one({"id": round_id})
         
+        # Serialize data
+        serialized_videos = [serialize_doc(video) for video in top_videos]
+        serialized_competition = serialize_doc(competition)
+        
         return {
-            "leaderboard": top_videos,
+            "leaderboard": serialized_videos,
             "competition_info": {
                 "round_id": round_id,
-                "end_date": competition["end_date"] if competition else None,
-                "total_prize_pool": competition["prize_pool"] if competition else 0,
-                "total_videos": competition["total_videos"] if competition else 0
+                "end_date": serialized_competition["end_date"] if serialized_competition else None,
+                "total_prize_pool": serialized_competition["prize_pool"] if serialized_competition else 0,
+                "total_videos": serialized_competition["total_videos"] if serialized_competition else 0
             }
         }
         
