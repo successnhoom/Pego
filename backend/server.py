@@ -526,7 +526,7 @@ async def upload_video_file(
         
         # Update video record
         await db.videos.update_one(
-            {"_id": video_id},
+            {"id": video_id},
             {
                 "$set": {
                     "filename": filename,
