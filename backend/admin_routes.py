@@ -868,7 +868,7 @@ async def get_video_analytics(
 async def get_financial_overview(
     days: int = Query(30, le=365),
     admin: AdminUser = Depends(get_current_admin),
-    db=None
+    db=Depends(get_db)
 ):
     """Get financial overview and statistics"""
     start_date = datetime.utcnow() - timedelta(days=days)
