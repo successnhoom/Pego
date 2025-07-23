@@ -13,7 +13,7 @@ import os
 import base64
 
 # Get backend URL from environment
-BACKEND_URL = "https://c7886ec9-8a09-4889-9731-41fa6f5b4275.preview.emergentagent.com/api"
+BACKEND_URL = "https://0483cf4a-f9dd-4bda-961e-57a746b87847.preview.emergentagent.com/api"
 
 class PegoAPITester:
     def __init__(self):
