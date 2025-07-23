@@ -888,68 +888,97 @@ async def get_payment_methods():
 async def upload_video_file(
     video_id: str,
     file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user)
 ):
-    """Upload video file after payment confirmation"""
+    """Upload video file and spend credits"""
     try:
-        # Check if video exists and is paid
-        video_doc = await db.videos.find_one({"id": video_id})
+        # Verify video belongs to current user
+        video_doc = await db.videos.find_one({"id": video_id, "user_id": current_user.id})
         if not video_doc:
-            raise HTTPException(status_code=404, detail="Video not found")
+            raise HTTPException(status_code=404, detail="Video not found or access denied")
         
-        if not video_doc.get("is_paid", False):
-            raise HTTPException(status_code=402, detail="Payment required")
+        if video_doc.get("is_paid", False):
+            raise HTTPException(status_code=400, detail="Video already uploaded")
         
-        # Validate file type and size
+        # Validate file
         if not file.content_type.startswith("video/"):
             raise HTTPException(status_code=400, detail="File must be a video")
         
-        # Check file size (limit to ~100MB for 3-minute videos)
-        max_size = 100 * 1024 * 1024  # 100MB
-        if file.size > max_size:
-            raise HTTPException(status_code=400, detail="File too large (max 100MB)")
+        file_size = 0
+        temp_file_path = None
         
-        # Save file
-        file_extension = Path(file.filename).suffix
-        filename = f"{video_id}{file_extension}"
-        file_path = UPLOAD_DIR / filename
-        
-        async with aiofiles.open(file_path, 'wb') as f:
-            content = await file.read()
-            await f.write(content)
-        
-        # Update video record
-        await db.videos.update_one(
-            {"id": video_id},
-            {
-                "$set": {
-                    "filename": filename,
-                    "file_path": str(file_path),
-                    "file_size": len(content),
-                    "upload_date": datetime.utcnow()
+        try:
+            # Save file
+            file_extension = Path(file.filename).suffix
+            unique_filename = f"{uuid.uuid4()}{file_extension}"
+            file_path = UPLOAD_DIR / unique_filename
+            
+            async with aiofiles.open(file_path, 'wb') as f:
+                while chunk := await file.read(1024 * 1024):  # 1MB chunks
+                    file_size += len(chunk)
+                    await f.write(chunk)
+                    
+                    # Check file size limit (100MB)
+                    if file_size > 100 * 1024 * 1024:
+                        await f.close()
+                        os.remove(file_path)
+                        raise HTTPException(status_code=400, detail="File too large (max 100MB)")
+            
+            # Spend credits (30 credits per video)
+            required_credits = 30
+            remaining_credits = await auth_manager.spend_credits(
+                current_user.id,
+                required_credits,
+                f"Video upload: {video_doc['title']}",
+                video_id
+            )
+            
+            # Update video record
+            await db.videos.update_one(
+                {"id": video_id},
+                {
+                    "$set": {
+                        "filename": unique_filename,
+                        "file_path": str(file_path),
+                        "file_size": file_size,
+                        "is_paid": True,
+                        "upload_date": datetime.utcnow(),
+                        "published_at": datetime.utcnow()
+                    }
                 }
-            }
-        )
-        
-        # Update competition round stats
-        round_id = video_doc["competition_round"]
-        await db.competition_rounds.update_one(
-            {"id": round_id},
-            {
-                "$inc": {
-                    "total_revenue": 30.0,
-                    "total_videos": 1,
-                    "prize_pool": 21.0  # 70% of 30 THB
+            )
+            
+            # Update competition round stats
+            await db.competition_rounds.update_one(
+                {"id": await get_current_competition_round()},
+                {
+                    "$inc": {
+                        "total_revenue": 30.0,
+                        "total_videos": 1,
+                        "prize_pool": 21.0  # 70% of 30 THB
+                    }
                 }
+            )
+            
+            return {
+                "message": "Video uploaded successfully!",
+                "video_id": video_id,
+                "filename": unique_filename,
+                "file_size": file_size,
+                "credits_spent": required_credits,
+                "remaining_credits": remaining_credits
             }
-        )
-        
-        return {
-            "message": "Video uploaded successfully",
-            "video_id": video_id,
-            "filename": filename
-        }
-        
+            
+        except Exception as e:
+            # Clean up file if something went wrong
+            if temp_file_path and os.path.exists(temp_file_path):
+                os.remove(temp_file_path)
+            raise e
+            
+    except HTTPException:
+        raise
     except Exception as e:
+        logger.error(f"Video upload failed: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
 
 @api_router.get("/videos")
