@@ -19,7 +19,9 @@ class User(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     username: str
     display_name: str
-    email: str
+    email: Optional[str] = None  # Optional for phone-only users
+    phone: Optional[str] = None  # Optional for email-only users
+    google_id: Optional[str] = None  # For Google OAuth
     avatar_url: Optional[str] = None
     bio: Optional[str] = ""
     is_verified: bool = False
@@ -27,6 +29,7 @@ class User(BaseModel):
     following_count: int = 0
     total_likes: int = 0
     total_views: int = 0
+    credits: int = 0  # User credits for uploads (30 credits = 1 video)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     last_active: datetime = Field(default_factory=datetime.utcnow)
     is_active: bool = True
