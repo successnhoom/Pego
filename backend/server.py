@@ -551,6 +551,284 @@ async def confirm_promptpay_payment(session_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to confirm PromptPay payment: {str(e)}")
 
+# Authentication endpoints
+@api_router.post("/auth/google")
+async def login_with_google(request: Request):
+    """Login with Google OAuth"""
+    try:
+        body = await request.json()
+        google_token = body.get("google_token")
+        
+        if not google_token:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Google token is required"
+            )
+
+        result = await auth_manager.login_with_google(google_token)
+        return result
+
+    except Exception as e:
+        logger.error(f"Google OAuth login failed: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Login failed: {str(e)}"
+        )
+
+@api_router.post("/auth/phone/send-otp")
+async def send_phone_otp(request: Request):
+    """Send OTP to phone number"""
+    try:
+        body = await request.json()
+        phone = body.get("phone")
+        
+        if not phone:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Phone number is required"
+            )
+
+        result = await auth_manager.send_otp(phone)
+        return result
+
+    except Exception as e:
+        logger.error(f"Send OTP failed: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to send OTP: {str(e)}"
+        )
+
+@api_router.post("/auth/phone/verify")
+async def verify_phone_otp(request: Request):
+    """Verify phone OTP and login"""
+    try:
+        body = await request.json()
+        phone = body.get("phone")
+        otp_code = body.get("otp_code")
+        
+        if not phone or not otp_code:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Phone number and OTP code are required"
+            )
+
+        result = await auth_manager.login_with_phone(phone, otp_code)
+        return result
+
+    except Exception as e:
+        logger.error(f"Phone OTP verification failed: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"OTP verification failed: {str(e)}"
+        )
+
+@api_router.get("/auth/me")
+async def get_current_user_info(current_user: User = Depends(get_current_user)):
+    """Get current user information"""
+    return {
+        "user": current_user.dict(),
+        "message": "User authenticated successfully"
+    }
+
+@api_router.put("/auth/profile")
+async def update_user_profile(request: Request, current_user: User = Depends(get_current_user)):
+    """Update user profile"""
+    try:
+        body = await request.json()
+        
+        # Remove sensitive fields that shouldn't be updated
+        allowed_fields = ["username", "display_name", "bio", "avatar_url"]
+        profile_data = {k: v for k, v in body.items() if k in allowed_fields}
+        
+        if not profile_data:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No valid fields to update"
+            )
+
+        updated_user = await auth_manager.update_user_profile(current_user.id, profile_data)
+        return {
+            "user": updated_user.dict(),
+            "message": "Profile updated successfully"
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Profile update failed: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Profile update failed: {str(e)}"
+        )
+
+# Credit system endpoints
+@api_router.get("/credits/balance")
+async def get_credit_balance(current_user: User = Depends(get_current_user)):
+    """Get current user's credit balance"""
+    credits = await auth_manager.get_user_credits(current_user.id)
+    return {
+        "credits": credits,
+        "user_id": current_user.id
+    }
+
+@api_router.post("/credits/topup")
+async def create_credit_topup(request: Request, current_user: User = Depends(get_current_user)):
+    """Create credit top-up payment session"""
+    try:
+        body = await request.json()
+        amount_thb = body.get("amount", 0)  # Amount in THB
+        payment_method = body.get("payment_method", "promptpay")  # "stripe" or "promptpay"
+        
+        if amount_thb <= 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Amount must be greater than 0"
+            )
+        
+        credits_to_add = int(amount_thb)  # 1 THB = 1 Credit
+
+        if payment_method == "stripe":
+            await init_stripe()
+            
+            if not stripe_checkout:
+                raise HTTPException(status_code=500, detail="Stripe not configured")
+            
+            # Create Stripe checkout session
+            host_url = "http://localhost:3000"
+            success_url = f"{host_url}/credits/success?session_id={{CHECKOUT_SESSION_ID}}"
+            cancel_url = f"{host_url}/credits/cancel"
+            
+            checkout_request = CheckoutSessionRequest(
+                amount=float(amount_thb),
+                currency="thb",
+                success_url=success_url,
+                cancel_url=cancel_url,
+                metadata={
+                    "user_id": current_user.id,
+                    "credits": str(credits_to_add),
+                    "service": "credit_topup"
+                }
+            )
+            
+            session: CheckoutSessionResponse = await stripe_checkout.create_checkout_session(checkout_request)
+            
+            # Store payment session
+            payment_session = PaymentSession(
+                session_id=session.session_id,
+                user_id=current_user.id,
+                amount=float(amount_thb),
+                currency="thb",
+                status="initiated",
+                payment_method="stripe"
+            )
+            
+            await db.payment_sessions.insert_one(payment_session.dict())
+            
+            return {
+                "payment_method": "stripe",
+                "checkout_url": session.url,
+                "session_id": session.session_id,
+                "credits": credits_to_add
+            }
+        
+        elif payment_method == "promptpay":
+            # Generate PromptPay QR code
+            qr_result = generate_promptpay_qr(promptpay_id, amount_thb)
+            
+            # Create PromptPay session (expires in 10 minutes)
+            expires_at = datetime.utcnow() + timedelta(minutes=10)
+            
+            promptpay_session = PromptPaySession(
+                qr_code_data=qr_result["qr_data"],
+                qr_code_image=qr_result["qr_image"],
+                user_id=current_user.id,
+                amount=float(amount_thb),
+                currency="THB",
+                status="pending",
+                expires_at=expires_at
+            )
+            
+            result = await db.promptpay_sessions.insert_one(promptpay_session.dict())
+            session_id = str(result.inserted_id)
+            
+            return {
+                "payment_method": "promptpay",
+                "session_id": session_id,
+                "qr_code": qr_result["qr_image"],
+                "amount": amount_thb,
+                "credits": credits_to_add,
+                "currency": "THB",
+                "expires_at": expires_at.isoformat(),
+                "instructions": f"Scan QR code to top up {credits_to_add} credits (฿{amount_thb})"
+            }
+        
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid payment method"
+            )
+            
+    except Exception as e:
+        logger.error(f"Credit topup failed: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create credit topup: {str(e)}"
+        )
+
+@api_router.post("/credits/confirm/promptpay/{session_id}")
+async def confirm_credit_topup(session_id: str, current_user: User = Depends(get_current_user)):
+    """Confirm PromptPay credit top-up payment"""
+    try:
+        # Get PromptPay session
+        promptpay_session = await db.promptpay_sessions.find_one({"id": session_id})
+        
+        if not promptpay_session:
+            raise HTTPException(status_code=404, detail="Payment session not found")
+        
+        if promptpay_session["user_id"] != current_user.id:
+            raise HTTPException(status_code=403, detail="Access denied")
+        
+        if promptpay_session["status"] == "paid":
+            raise HTTPException(status_code=400, detail="Payment already confirmed")
+        
+        # Check if session expired
+        if datetime.utcnow() > promptpay_session["expires_at"]:
+            await db.promptpay_sessions.update_one(
+                {"id": session_id},
+                {"$set": {"status": "expired"}}
+            )
+            raise HTTPException(status_code=400, detail="Payment session expired")
+        
+        # Mark payment as paid
+        await db.promptpay_sessions.update_one(
+            {"id": session_id},
+            {"$set": {"status": "paid"}}
+        )
+        
+        # Add credits to user account
+        credits_to_add = int(promptpay_session["amount"])  # 1 THB = 1 Credit
+        new_balance = await auth_manager.add_credits(
+            current_user.id,
+            credits_to_add,
+            "topup",
+            f"PromptPay top-up ฿{promptpay_session['amount']}",
+            session_id
+        )
+        
+        return {
+            "message": "Credit top-up confirmed successfully",
+            "session_id": session_id,
+            "credits_added": credits_to_add,
+            "new_balance": new_balance
+        }
+        
+    except Exception as e:
+        logger.error(f"Credit topup confirmation failed: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to confirm credit topup: {str(e)}"
+        )
+
 @api_router.get("/payment/methods")
 async def get_payment_methods():
     """Get available payment methods"""
