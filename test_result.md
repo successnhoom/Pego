@@ -126,7 +126,7 @@ backend:
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
         - working: "NA"
           agent: "main"
@@ -134,6 +134,9 @@ backend:
         - working: true
           agent: "testing"
           comment: "Stripe integration fully working - payment session creation, status checking, and webhook handling all implemented correctly"
+        - working: true
+          agent: "main"
+          comment: "PromptPay integration implemented successfully with EMV QR code generation. Both Stripe and PromptPay payment methods now available. New endpoints: /api/payment/methods, /api/payment/create, /api/payment/status/stripe/{session_id}, /api/payment/status/promptpay/{session_id}, /api/payment/confirm/promptpay/{session_id}"
 
   - task: "View Counting System"
     implemented: true
