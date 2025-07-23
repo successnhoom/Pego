@@ -675,7 +675,7 @@ async def get_user_detail(
     total_likes = sum(v.get("like_count", 0) for v in videos)
     
     return {
-        "user": user,
+        "user": serialize_doc(user),
         "stats": {
             "video_count": len(videos),
             "total_views": total_views,
@@ -684,8 +684,8 @@ async def get_user_detail(
             "total_topped_up_credits": total_topped_up,
             "current_credits": user.get("credits", 0)
         },
-        "recent_videos": videos[:10],  # Last 10 videos
-        "recent_transactions": transactions[:20]  # Last 20 transactions
+        "recent_videos": serialize_doc(videos[:10]),  # Last 10 videos
+        "recent_transactions": serialize_doc(transactions[:20])  # Last 20 transactions
     }
 
 @admin_router.post("/users/{user_id}/ban")
