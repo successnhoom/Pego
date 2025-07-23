@@ -282,10 +282,11 @@ metadata:
 
 test_plan:
   current_focus:
-    - "TikTok-Style redesign testing completed successfully"
+    - "Payment Integration - Stripe & PromptPay"
+    - "Payment Method Selection UI"
   stuck_tasks: []
   test_all: false
-  test_priority: "completed"
+  test_priority: "high_first"
 
 agent_communication:
     - agent: "main"
@@ -300,3 +301,5 @@ agent_communication:
       message: "Comprehensive PWA testing completed successfully! All PWA features working perfectly: manifest loading, service worker registration, offline capabilities, mobile responsiveness (375x812), PWA shortcuts, touch-friendly navigation, Thai language support, backend API integration, and form validation. The Pego PWA is fully functional and ready for production deployment."
     - agent: "testing"
       message: "TikTok-Style Pego PWA Testing Completed Successfully! ✅ All TikTok-style features working perfectly: vertical video feed with snap scrolling, social interaction buttons (like/comment/share), user profiles with verification badges, bottom navigation (5 tabs), enhanced upload interface with hashtags, comments modal system, profile modal with user stats, mobile-optimized design (375x812), prize integration (30 THB), and Thai language support throughout. The redesigned TikTok-style interface provides an excellent social video platform experience with all core functionality working as expected."
+    - agent: "main"
+      message: "Implemented PromptPay integration alongside Stripe. Backend now supports dual payment methods with new endpoints: /api/payment/methods, /api/payment/create, /api/payment/status/stripe/{id}, /api/payment/status/promptpay/{id}, /api/payment/confirm/promptpay/{id}. Frontend updated with 3-step payment flow: form → payment method selection → payment processing. PromptPay uses EMV QR code format. Ready for comprehensive testing of both payment methods."
