@@ -9,6 +9,7 @@ import CreditTopUpModal from './components/CreditTopUpModal';
 import ProfilePage from './components/ProfilePage';
 import SearchPage from './components/SearchPage';
 import ChatPage from './components/ChatPage';
+import AdminApp from './components/AdminApp';
 import PWAInstallPrompt, { PWAUpdatePrompt, OfflineIndicator } from './components/PWAInstallPrompt';
 import { usePWA } from './hooks/usePWA';
 
