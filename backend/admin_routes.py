@@ -667,7 +667,7 @@ async def ban_user(
     user_id: str,
     reason: str = "",
     admin: AdminUser = Depends(get_current_admin),
-    db=None
+    db=Depends(get_db)
 ):
     """Ban a user"""
     user = await db.users.find_one({"id": user_id})
