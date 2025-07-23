@@ -1,22 +1,23 @@
 # Admin Dashboard API Routes
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from datetime import datetime, timedelta
 from typing import List, Optional, Dict, Any
 import jwt
 import bcrypt
+import os
 from pydantic import BaseModel
 
 from models import (
     AdminUser, AdminLog, Competition, Video, User, AlgorithmConfig,
-    CompetitionStatus, VideoStatus
+    CompetitionStatus, VideoStatus, CreditTransaction
 )
 from algorithm import VideoRecommendationEngine
 
-admin_router = APIRouter(prefix="/admin", tags=["admin"])
+admin_router = APIRouter(prefix="/api/admin", tags=["admin"])
 security = HTTPBearer()
 
-SECRET_KEY = "your-admin-secret-key"  # In production, use environment variable
+SECRET_KEY = os.environ.get('ADMIN_SECRET_KEY', 'pego_admin_secret_key_change_in_production')
 ALGORITHM = "HS256"
 
 class AdminLogin(BaseModel):
