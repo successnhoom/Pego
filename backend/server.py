@@ -47,6 +47,13 @@ UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 # Create the main app
 app = FastAPI()
+
+# Add session middleware for OAuth
+app.add_middleware(
+    SessionMiddleware, 
+    secret_key=os.environ.get('SESSION_SECRET_KEY', 'pego_session_secret')
+)
+
 api_router = APIRouter(prefix="/api")
 
 # Initialize Algorithm Engine
