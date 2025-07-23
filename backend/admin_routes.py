@@ -921,7 +921,7 @@ async def get_financial_overview(
     }
 
 @admin_router.get("/financial/settings")
-async def get_financial_settings(admin: AdminUser = Depends(get_current_admin), db=None):
+async def get_financial_settings(admin: AdminUser = Depends(get_current_admin), db=Depends(get_db)):
     """Get current financial settings"""
     settings = await db.system_settings.find_one({"type": "financial"})
     if not settings:
