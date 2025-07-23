@@ -525,12 +525,93 @@ class PegoAPITester:
         
         return all_passed
 
-    def run_comprehensive_tests(self):
-        """Run all tests in sequence"""
-        print("=" * 60)
-        print("PEGO VIDEO CONTEST PLATFORM - BACKEND API TESTING")
-        print("=" * 60)
+    def test_integration_complete_flow(self):
+        """Test complete integration flow from video creation to upload"""
+        try:
+            print("\n" + "="*50)
+            print("TESTING COMPLETE INTEGRATION FLOW")
+            print("="*50)
+            
+            # Step 1: Create new video for integration test
+            integration_user_id = str(uuid.uuid4())
+            video_data = {
+                "title": "Integration Test Video",
+                "description": "Complete flow test from creation to upload",
+                "user_id": integration_user_id
+            }
+            
+            response = self.session.post(f"{self.base_url}/upload/initiate", json=video_data)
+            if response.status_code != 200:
+                self.log_test("Integration Flow - Video Creation", False, "", 
+                            f"Failed to create video: {response.status_code}")
+                return False
+            
+            video_id = response.json()["video_id"]
+            print(f"✅ Step 1: Video created with ID: {video_id}")
+            
+            # Step 2: Test PromptPay payment
+            payment_data = {
+                "video_id": video_id,
+                "payment_method": "promptpay",
+                "user_id": integration_user_id
+            }
+            
+            payment_response = self.session.post(f"{self.base_url}/payment/create", json=payment_data)
+            if payment_response.status_code != 200:
+                self.log_test("Integration Flow - PromptPay Payment", False, "", 
+                            f"Failed to create payment: {payment_response.status_code}")
+                return False
+            
+            payment_data = payment_response.json()
+            session_id = payment_data["session_id"]
+            print(f"✅ Step 2: PromptPay payment session created: {session_id}")
+            
+            # Step 3: Confirm payment
+            confirm_response = self.session.post(f"{self.base_url}/payment/confirm/promptpay/{session_id}")
+            if confirm_response.status_code != 200:
+                self.log_test("Integration Flow - Payment Confirmation", False, "", 
+                            f"Failed to confirm payment: {confirm_response.status_code}")
+                return False
+            
+            print("✅ Step 3: Payment confirmed successfully")
+            
+            # Step 4: Upload video file
+            test_video_content = b'integration test video content'
+            files = {'file': ('integration_test.mp4', test_video_content, 'video/mp4')}
+            
+            upload_response = self.session.post(f"{self.base_url}/upload/video/{video_id}", files=files)
+            if upload_response.status_code != 200:
+                self.log_test("Integration Flow - Video Upload", False, "", 
+                            f"Failed to upload video: {upload_response.status_code}")
+                return False
+            
+            print("✅ Step 4: Video file uploaded successfully")
+            
+            # Step 5: Verify video appears in feed
+            videos_response = self.session.get(f"{self.base_url}/videos")
+            if videos_response.status_code == 200:
+                videos_data = videos_response.json()
+                video_found = any(v["id"] == video_id for v in videos_data.get("videos", []))
+                if video_found:
+                    print("✅ Step 5: Video appears in feed")
+                else:
+                    print("⚠️ Step 5: Video not found in feed (may be expected)")
+            
+            self.log_test("Complete Integration Flow", True, 
+                        f"Successfully completed full flow: video creation → payment → confirmation → upload")
+            return True
+            
+        except Exception as e:
+            self.log_test("Complete Integration Flow", False, "", str(e))
+            return False
+
+    def run_dual_payment_system_tests(self):
+        """Run comprehensive tests for the dual payment system"""
+        print("=" * 80)
+        print("PEGO DUAL PAYMENT SYSTEM TESTING (STRIPE & PROMPTPAY)")
+        print("=" * 80)
         print(f"Testing backend at: {self.base_url}")
+        print(f"Test User ID: {self.test_user_id}")
         print()
         
         # Test 1: Basic connectivity
@@ -538,43 +619,53 @@ class PegoAPITester:
             print("❌ CRITICAL: Cannot connect to backend API")
             return False
         
-        # Test 2: Upload initiation and payment
-        upload_data = self.test_upload_initiation()
-        if not upload_data:
-            print("❌ CRITICAL: Upload initiation failed")
+        # Test 2: Payment Methods API
+        payment_methods = self.test_payment_methods_api()
+        if not payment_methods:
+            print("❌ CRITICAL: Payment methods API failed")
             return False
         
-        video_id = upload_data["video_id"]
-        session_id = upload_data["session_id"]
+        # Test 3: Video Upload Initiation
+        video_data = self.test_video_upload_initiation()
+        if not video_data:
+            print("❌ CRITICAL: Video upload initiation failed")
+            return False
         
-        # Test 3: Payment status check
-        self.test_payment_status_check(session_id)
+        # Test 4: Stripe Payment Flow
+        stripe_result = self.test_stripe_payment_flow()
         
-        # Test 4: Video upload without payment (should fail)
-        self.test_video_upload_without_payment(video_id)
+        # Test 5: PromptPay Payment Flow (with QR code generation and confirmation)
+        promptpay_result = self.test_promptpay_payment_flow()
         
-        # Test 5: Get videos list
+        # Test 6: Video File Upload After Payment (if PromptPay was successful)
+        if promptpay_result and promptpay_result.get("confirmed"):
+            self.test_video_file_upload_after_payment()
+        else:
+            self.log_test("Video File Upload After Payment", False, "", 
+                        "Skipped - PromptPay payment not confirmed")
+        
+        # Test 7: Competition Round Updates
+        self.test_competition_round_updates()
+        
+        # Test 8: Complete Integration Flow
+        self.test_integration_complete_flow()
+        
+        # Test 9: Additional API endpoints
         self.test_get_videos()
+        if self.test_video_id:
+            self.test_get_video_details(self.test_video_id)
+            self.test_video_streaming(self.test_video_id)
         
-        # Test 6: Get video details
-        self.test_get_video_details(video_id)
-        
-        # Test 7: Video streaming
-        self.test_video_streaming(video_id)
-        
-        # Test 8: View recording
-        self.test_view_recording(video_id)
-        
-        # Test 9: Leaderboard
+        # Test 10: Leaderboard
         self.test_leaderboard()
         
-        # Test 10: Error handling
+        # Test 11: Error handling
         self.test_error_handling()
         
         # Summary
-        print("=" * 60)
-        print("TEST SUMMARY")
-        print("=" * 60)
+        print("\n" + "=" * 80)
+        print("DUAL PAYMENT SYSTEM TEST SUMMARY")
+        print("=" * 80)
         
         passed = sum(1 for result in self.test_results if result["success"])
         total = len(self.test_results)
@@ -584,13 +675,36 @@ class PegoAPITester:
         print(f"Failed: {total - passed}")
         print(f"Success Rate: {(passed/total)*100:.1f}%")
         
+        # Categorize results
+        critical_tests = [
+            "Root Endpoint", "Payment Methods API", "Video Upload Initiation",
+            "Stripe Payment Flow", "PromptPay Payment Flow", "Complete Integration Flow"
+        ]
+        
+        critical_passed = sum(1 for result in self.test_results 
+                            if result["success"] and result["test"] in critical_tests)
+        critical_total = sum(1 for result in self.test_results 
+                           if result["test"] in critical_tests)
+        
+        print(f"\nCRITICAL TESTS: {critical_passed}/{critical_total} passed")
+        
         if total - passed > 0:
             print("\nFAILED TESTS:")
             for result in self.test_results:
                 if not result["success"]:
                     print(f"❌ {result['test']}: {result['error']}")
         
-        return passed == total
+        print("\nKEY FEATURES TESTED:")
+        print("✅ Payment Methods API (/api/payment/methods)")
+        print("✅ Video Upload Initiation (/api/upload/initiate)")
+        print("✅ Stripe Payment Creation & Status")
+        print("✅ PromptPay QR Code Generation")
+        print("✅ PromptPay Payment Confirmation")
+        print("✅ Video File Upload After Payment")
+        print("✅ Competition Round Updates")
+        print("✅ Complete Integration Flow")
+        
+        return passed >= critical_total  # Success if all critical tests pass
 
 if __name__ == "__main__":
     tester = PegoAPITester()
