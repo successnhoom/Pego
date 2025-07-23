@@ -6,6 +6,9 @@ import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import LoginModal from './components/LoginModal';
 import CreditTopUpModal from './components/CreditTopUpModal';
+import ProfilePage from './components/ProfilePage';
+import SearchPage from './components/SearchPage';
+import ChatPage from './components/ChatPage';
 import PWAInstallPrompt, { PWAUpdatePrompt, OfflineIndicator } from './components/PWAInstallPrompt';
 import { usePWA } from './hooks/usePWA';
 
