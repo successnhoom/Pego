@@ -111,7 +111,7 @@ backend:
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
         - working: "NA"
           agent: "main"
@@ -119,6 +119,9 @@ backend:
         - working: true
           agent: "testing"
           comment: "Backend testing agent confirmed: Video upload API fully implemented with payment integration, file validation, and proper error handling"
+        - working: true
+          agent: "main"
+          comment: "Updated video upload system to use credit-based payment (30 credits per video) with user authentication. Removed external payment processing for video uploads."
 
   - task: "Payment Integration - Stripe & PromptPay"
     implemented: true
@@ -126,7 +129,7 @@ backend:
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
         - working: "NA"
           agent: "main"
@@ -137,6 +140,36 @@ backend:
         - working: true
           agent: "main"
           comment: "PromptPay integration implemented successfully with EMV QR code generation. Both Stripe and PromptPay payment methods now available. New endpoints: /api/payment/methods, /api/payment/create, /api/payment/status/stripe/{session_id}, /api/payment/status/promptpay/{session_id}, /api/payment/confirm/promptpay/{session_id}"
+
+  - task: "Authentication System - Google OAuth & Phone OTP"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py, /app/backend/auth.py, /app/backend/models.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Need to implement Google OAuth and Phone OTP authentication system"
+        - working: true
+          agent: "main"
+          comment: "Authentication system implemented successfully. Google OAuth: /api/auth/google, Phone OTP: /api/auth/phone/send-otp & /api/auth/phone/verify. User management: /api/auth/me & /api/auth/profile. JWT token-based authentication with proper session management."
+
+  - task: "Credit System - Top-up & Spending"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py, /app/backend/auth.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Need to implement credit-based payment system: 1 THB = 1 Credit, 30 credits per video upload"
+        - working: true
+          agent: "main"
+          comment: "Credit system implemented: /api/credits/balance, /api/credits/topup (Stripe & PromptPay), /api/credits/confirm/promptpay/{id}. Video uploads now require 30 credits instead of direct payment. Credit transactions are tracked in database."
         - working: true
           agent: "testing"
           comment: "Comprehensive dual payment system testing completed successfully! ✅ All 15 tests passed (100% success rate). Key features verified: Payment Methods API returns both Stripe and PromptPay options (30 THB), Video Upload Initiation creates video records correctly, Stripe Payment Flow creates sessions and handles status checking, PromptPay Payment Flow generates EMV QR codes and handles confirmation, Video File Upload works after payment confirmation, Competition Round Updates track revenue and prize pools correctly (168 THB prize pool from 8 videos), Complete Integration Flow from video creation to upload works end-to-end. Fixed critical MongoDB ObjectId serialization issues and missing route decorator for video upload endpoint. Both payment methods are fully functional with proper error handling and database consistency."
