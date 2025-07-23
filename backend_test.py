@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Comprehensive Backend API Testing for Pego Video Contest Platform
-Tests dual payment system (Stripe & PromptPay) and all backend endpoints
+Tests Authentication System, Credit System, and Updated Video Upload System
 """
 
 import requests
