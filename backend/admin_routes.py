@@ -97,6 +97,40 @@ def verify_password(password: str, hashed: str) -> bool:
     return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
 
 # Authentication routes
+@admin_router.post("/register")
+async def create_admin(admin_data: AdminCreate, db):
+    """Create new admin user (for setup only)"""
+    # Check if admin with username already exists
+    existing_admin = await db.admin_users.find_one({"username": admin_data.username})
+    if existing_admin:
+        raise HTTPException(status_code=400, detail="Admin username already exists")
+    
+    # Check if admin with email already exists
+    existing_email = await db.admin_users.find_one({"email": admin_data.email})
+    if existing_email:
+        raise HTTPException(status_code=400, detail="Admin email already exists")
+    
+    # Create admin user
+    admin_user = AdminUser(
+        username=admin_data.username,
+        email=admin_data.email,
+        password_hash=hash_password(admin_data.password),
+        role=admin_data.role,
+        permissions=["full_access"]  # Default permissions
+    )
+    
+    await db.admin_users.insert_one(admin_user.dict())
+    
+    return {
+        "message": "Admin created successfully",
+        "admin": {
+            "id": admin_user.id,
+            "username": admin_user.username,
+            "email": admin_user.email,
+            "role": admin_user.role
+        }
+    }
+
 @admin_router.post("/login")
 async def admin_login(login_data: AdminLogin, db):
     admin = await db.admin_users.find_one({"username": login_data.username, "is_active": True})
@@ -104,7 +138,7 @@ async def admin_login(login_data: AdminLogin, db):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     
     # Verify password
-    if not bcrypt.checkpw(login_data.password.encode(), admin["password_hash"].encode()):
+    if not verify_password(login_data.password, admin["password_hash"]):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     
     # Update last login
