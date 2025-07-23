@@ -200,6 +200,9 @@ class AuthManager:
 
     async def login_with_phone(self, phone: str, otp_code: str) -> Dict[str, Any]:
         """Login or register user with phone OTP"""
+        # Clean phone number (same as send_otp and verify_otp)
+        phone = phone.replace('+', '').replace('-', '').replace(' ', '')
+        
         # Verify OTP
         if not await self.verify_otp(phone, otp_code):
             raise HTTPException(
