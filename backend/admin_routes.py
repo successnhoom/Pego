@@ -87,6 +87,15 @@ async def log_admin_action(db, admin_id: str, action: str, target_type: str, tar
     )
     await db.admin_logs.insert_one(log.dict())
 
+def hash_password(password: str) -> str:
+    """Hash password using bcrypt"""
+    salt = bcrypt.gensalt()
+    return bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
+
+def verify_password(password: str, hashed: str) -> bool:
+    """Verify password against hash"""
+    return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
+
 # Authentication routes
 @admin_router.post("/login")
 async def admin_login(login_data: AdminLogin, db):
