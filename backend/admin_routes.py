@@ -557,7 +557,7 @@ async def update_algorithm_config(
 async def get_engagement_analytics(
     days: int = Query(7, le=30),
     admin: AdminUser = Depends(get_current_admin),
-    db=None
+    db=Depends(get_db)
 ):
     start_date = datetime.utcnow() - timedelta(days=days)
     
