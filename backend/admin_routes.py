@@ -939,7 +939,7 @@ async def get_financial_settings(admin: AdminUser = Depends(get_current_admin), 
 async def update_financial_settings(
     settings: FinancialSettings,
     admin: AdminUser = Depends(get_current_admin),
-    db=None
+    db=Depends(get_db)
 ):
     """Update financial settings"""
     # Validate settings
