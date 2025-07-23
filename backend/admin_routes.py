@@ -369,7 +369,7 @@ async def get_videos(
     limit: int = Query(50, le=100),
     offset: int = 0,
     admin: AdminUser = Depends(get_current_admin),
-    db=None
+    db=Depends(get_db)
 ):
     query = {}
     if status:
