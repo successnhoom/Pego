@@ -404,7 +404,8 @@ async def get_videos(
     videos = await db.videos.find(query).sort("upload_date", -1).skip(offset).limit(limit).to_list(limit)
     total = await db.videos.count_documents(query)
     
-    # Enrich with user data
+    # Enrich with user data and serialize
+    serialized_videos = []
     for video in videos:
         user = await db.users.find_one({"id": video["user_id"]})
         if user:
@@ -413,9 +414,10 @@ async def get_videos(
                 "display_name": user["display_name"],
                 "is_verified": user.get("is_verified", False)
             }
+        serialized_videos.append(serialize_doc(video))
     
     return {
-        "videos": videos,
+        "videos": serialized_videos,
         "total": total,
         "limit": limit,
         "offset": offset
