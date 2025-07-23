@@ -41,6 +41,13 @@ db_name = os.environ.get('DB_NAME', 'pego_database')
 client = AsyncIOMotorClient(mongo_url)
 db = client[db_name]
 
+# Initialize AuthManager
+auth_manager = AuthManager(db)
+
+# Helper function to get database (for dependencies)
+def get_database():
+    return db
+
 # Create upload directories
 UPLOAD_DIR = ROOT_DIR / "uploads" / "videos"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
