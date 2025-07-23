@@ -973,7 +973,7 @@ async def update_financial_settings(
 
 # System Settings
 @admin_router.get("/system/settings")
-async def get_system_settings(admin: AdminUser = Depends(get_current_admin), db=None):
+async def get_system_settings(admin: AdminUser = Depends(get_current_admin), db=Depends(get_db)):
     """Get system settings"""
     settings = await db.system_settings.find_one({"type": "system"})
     if not settings:
