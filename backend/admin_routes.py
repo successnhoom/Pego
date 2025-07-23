@@ -485,13 +485,15 @@ async def get_users(
     users = await db.users.find(query).sort("created_at", -1).skip(offset).limit(limit).to_list(limit)
     total = await db.users.count_documents(query)
     
-    # Add video count for each user
+    # Add video count for each user and serialize
+    serialized_users = []
     for user in users:
         video_count = await db.videos.count_documents({"user_id": user["id"]})
         user["video_count"] = video_count
+        serialized_users.append(serialize_doc(user))
     
     return {
-        "users": users,
+        "users": serialized_users,
         "total": total,
         "limit": limit,
         "offset": offset
