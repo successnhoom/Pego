@@ -515,7 +515,7 @@ async def moderate_users(
 
 # Algorithm management
 @admin_router.get("/algorithm/config")
-async def get_algorithm_config(admin: AdminUser = Depends(get_current_admin), db=None):
+async def get_algorithm_config(admin: AdminUser = Depends(get_current_admin), db=Depends(get_db)):
     config = await db.algorithm_configs.find_one({"is_active": True})
     if not config:
         raise HTTPException(status_code=404, detail="No active algorithm configuration found")
