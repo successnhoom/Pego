@@ -446,7 +446,7 @@ async def get_users(
     limit: int = Query(50, le=100),
     offset: int = 0,
     admin: AdminUser = Depends(get_current_admin),
-    db=None
+    db=Depends(get_db)
 ):
     query = {}
     if is_verified is not None:
