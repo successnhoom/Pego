@@ -708,9 +708,13 @@ class PegoAPITester:
 
 if __name__ == "__main__":
     tester = PegoAPITester()
-    success = tester.run_comprehensive_tests()
+    success = tester.run_dual_payment_system_tests()
     
     if success:
-        print("\n🎉 ALL TESTS PASSED! Backend is working correctly.")
+        print("\n🎉 DUAL PAYMENT SYSTEM TESTS PASSED! Backend is working correctly.")
+        print("✅ Both Stripe and PromptPay payment methods are functional")
+        print("✅ QR code generation and payment confirmation working")
+        print("✅ Video upload integration with payment system working")
     else:
-        print("\n⚠️  Some tests failed. Check the details above.")
+        print("\n⚠️  Some critical tests failed. Check the details above.")
+        print("🔍 Focus on fixing critical payment system issues first.")
