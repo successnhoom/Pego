@@ -1019,7 +1019,7 @@ async def update_system_settings(
 async def get_user_analytics(
     days: int = Query(30, le=365),
     admin: AdminUser = Depends(get_current_admin),
-    db=None
+    db=Depends(get_db)
 ):
     """Get user analytics"""
     start_date = datetime.utcnow() - timedelta(days=days)
