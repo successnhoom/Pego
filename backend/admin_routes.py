@@ -526,7 +526,7 @@ async def get_algorithm_config(admin: AdminUser = Depends(get_current_admin), db
 async def update_algorithm_config(
     config_data: dict,
     admin: AdminUser = Depends(get_current_admin),
-    db=None
+    db=Depends(get_db)
 ):
     # Validate config data
     try:
