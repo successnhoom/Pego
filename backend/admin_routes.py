@@ -698,7 +698,7 @@ async def ban_user(
 async def unban_user(
     user_id: str,
     admin: AdminUser = Depends(get_current_admin),
-    db=None
+    db=Depends(get_db)
 ):
     """Unban a user"""
     user = await db.users.find_one({"id": user_id})
