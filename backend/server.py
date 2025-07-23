@@ -350,7 +350,7 @@ async def create_payment_session(payment_request: PaymentMethodRequest):
             )
             
             result = await db.promptpay_sessions.insert_one(promptpay_session.dict())
-            session_id = str(result.inserted_id)
+            session_id = promptpay_session.id  # Use our custom UUID instead of MongoDB ObjectId
             
             return {
                 "payment_method": "promptpay",
