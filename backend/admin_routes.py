@@ -990,7 +990,7 @@ async def get_system_settings(admin: AdminUser = Depends(get_current_admin), db=
 async def update_system_settings(
     settings: SystemSettings,
     admin: AdminUser = Depends(get_current_admin),
-    db=None
+    db=Depends(get_db)
 ):
     """Update system settings"""
     await db.system_settings.update_one(
