@@ -17,8 +17,9 @@ import aiofiles
 import shutil
 import json
 
-# Import new modules
+# Models and Authentication
 from models import Video, User, VideoInteraction, Competition, AlgorithmScore, AdminUser
+from auth import AuthManager, get_current_user, get_current_user_optional
 from algorithm import VideoRecommendationEngine
 from admin_routes import admin_router
 
