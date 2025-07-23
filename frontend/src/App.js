@@ -1,11 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import './App.css';
+import { GoogleOAuthProvider } from '@react-oauth/google';
+import { Toaster } from 'react-hot-toast';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import LoginModal from './components/LoginModal';
+import CreditTopUpModal from './components/CreditTopUpModal';
 import PWAInstallPrompt, { PWAUpdatePrompt, OfflineIndicator } from './components/PWAInstallPrompt';
 import { usePWA } from './hooks/usePWA';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+// Google OAuth Client ID
+const GOOGLE_CLIENT_ID = "893904894959-osihjm2fh2ui6c5vjtnivqr0202qs7q2.apps.googleusercontent.com";
+
+// API Configuration
+const API = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001/api';
 
 // TikTok-style Video Feed Component
 const TikTokFeed = () => {
