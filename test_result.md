@@ -259,6 +259,21 @@ frontend:
           agent: "testing"
           comment: "TikTok-Style Testing: ✅ Enhanced upload form with video preview ✅ File input with proper styling ✅ Title, description, hashtag, and User ID fields ✅ Prize information display (30 THB entry fee) ✅ Competition details (Top 1,000 videos get 70% prize) ✅ Form validation working ✅ Upload button enabled with valid data ✅ Mobile-responsive design ✅ Thai language throughout interface"
 
+  - task: "Payment Method Selection UI"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Need UI to select between Stripe and PromptPay payment methods with 3-step flow"
+        - working: true
+          agent: "main"
+          comment: "Implemented 3-step payment flow: 1) Video upload form 2) Payment method selection (Stripe/PromptPay) 3) Payment processing (QR code for PromptPay, redirect for Stripe). Includes proper error handling, form validation, and success messages with auto-reset."
+
   - task: "PWA Implementation"
     implemented: true
     working: true
