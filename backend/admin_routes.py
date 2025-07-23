@@ -733,7 +733,7 @@ async def adjust_user_credits(
     user_id: str,
     request: Request,
     admin: AdminUser = Depends(get_current_admin),
-    db=None
+    db=Depends(get_db)
 ):
     """Adjust user's credit balance"""
     body = await request.json()
