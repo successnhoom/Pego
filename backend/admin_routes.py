@@ -61,8 +61,13 @@ class FinancialSettings(BaseModel):
     admin_fee_percentage: float = 30.0
     min_payout_amount: float = 100.0
 
+# Database dependency
+def get_db():
+    from server import db
+    return db
+
 # Dependency functions
-async def get_current_admin(credentials: HTTPAuthorizationCredentials = Depends(security), db=None):
+async def get_current_admin(credentials: HTTPAuthorizationCredentials = Depends(security), db=Depends(get_db)):
     try:
         payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
         admin_id: str = payload.get("sub")
