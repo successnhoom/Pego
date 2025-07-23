@@ -982,31 +982,13 @@ const MainApp = () => {
       case 'home':
         return <TikTokFeed />;
       case 'search':
-        return <div className="min-h-screen bg-black text-white flex items-center justify-center">
-          <div className="text-center">
-            <div className="text-6xl mb-4">🔍</div>
-            <h2 className="text-2xl font-bold mb-2">หน้าค้นหา</h2>
-            <p className="text-gray-400">ฟีเจอร์ค้นหากำลังพัฒนา...</p>
-          </div>
-        </div>;
+        return <SearchPage />;
       case 'create':
         return <EnhancedVideoUpload />;
       case 'inbox':
-        return <div className="min-h-screen bg-black text-white flex items-center justify-center">
-          <div className="text-center">
-            <div className="text-6xl mb-4">💬</div>
-            <h2 className="text-2xl font-bold mb-2">กล่องข้อความ</h2>
-            <p className="text-gray-400">ระบบแชทกำลังพัฒนา...</p>
-          </div>
-        </div>;
+        return <ChatPage />;
       case 'profile':
-        return <div className="min-h-screen bg-black text-white flex items-center justify-center">
-          <div className="text-center">
-            <div className="text-6xl mb-4">👤</div>
-            <h2 className="text-2xl font-bold mb-2">โปรไฟล์</h2>
-            <p className="text-gray-400">หน้าโปรไฟล์กำลังพัฒนา...</p>
-          </div>
-        </div>;
+        return <ProfilePage />;
       default:
         return <TikTokFeed />;
     }
