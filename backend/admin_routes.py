@@ -479,7 +479,7 @@ async def get_users(
 async def moderate_users(
     moderation: UserModerationAction,
     admin: AdminUser = Depends(get_current_admin),
-    db=None
+    db=Depends(get_db)
 ):
     if moderation.action not in ["suspend", "activate", "verify", "unverify"]:
         raise HTTPException(status_code=400, detail="Invalid moderation action")
