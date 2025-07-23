@@ -644,7 +644,10 @@ async def get_videos(limit: int = 50, offset: int = 0):
             "filename": {"$ne": ""}
         }).sort("view_count", -1).skip(offset).limit(limit).to_list(limit)
         
-        return {"videos": videos, "total": len(videos)}
+        # Serialize videos to remove ObjectId issues
+        serialized_videos = [serialize_doc(video) for video in videos]
+        
+        return {"videos": serialized_videos, "total": len(serialized_videos)}
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
