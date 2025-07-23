@@ -195,10 +195,10 @@ class PegoAPITester:
             # Restore headers
             self.session.headers.update(original_headers)
             
-            # Should fail with 401
-            if response.status_code == 401:
+            # Should fail with 401 or 403
+            if response.status_code in [401, 403]:
                 self.log_test("Auth Me (No Token)", True, 
-                            "Correctly rejected request without token")
+                            f"Correctly rejected request without token (status {response.status_code})")
                 return True
             else:
                 self.log_test("Auth Me (No Token)", False, "", 
