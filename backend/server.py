@@ -24,7 +24,7 @@ from admin_routes import admin_router
 from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionResponse, CheckoutStatusResponse, CheckoutSessionRequest
 
 # PromptPay imports
-import pypromptpay.qrcode as pp_qrcode
+from pypromptpay import qr_code as pp_qrcode
 import qrcode
 import base64
 from io import BytesIO
