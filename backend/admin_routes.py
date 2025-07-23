@@ -254,7 +254,7 @@ async def get_competitions(
 async def create_competition(
     competition_data: CompetitionCreate,
     admin: AdminUser = Depends(get_current_admin),
-    db=None
+    db=Depends(get_db)
 ):
     # End current active competition if exists
     await db.competitions.update_many(
