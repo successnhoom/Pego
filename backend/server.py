@@ -160,8 +160,8 @@ async def init_stripe():
 def generate_promptpay_qr(promptpay_id: str, amount: float) -> dict:
     """Generate PromptPay QR code data and image"""
     try:
-        # Generate PromptPay QR code data
-        qr_data = pp_qrcode.generate_payload(promptpay_id, amount)
+        # Generate PromptPay QR code data using pypromptpay
+        qr_data = pp_qrcode(account=promptpay_id, money=str(amount), currency="THB")
         
         # Create QR code image
         qr = qrcode.QRCode(
@@ -187,6 +187,7 @@ def generate_promptpay_qr(promptpay_id: str, amount: float) -> dict:
         }
         
     except Exception as e:
+        logger.error(f"PromptPay QR generation failed: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to generate PromptPay QR: {str(e)}")
 
 # Routes
