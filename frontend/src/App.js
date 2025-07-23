@@ -851,8 +851,207 @@ const TikTokNavigation = ({ currentView, setCurrentView }) => {
   );
 };
 
-// Main App Component
-const App = () => {
+// Main App Component with Authentication
+const MainApp = () => {
+  const { user, isAuthenticated, logout } = useAuth();
+  const [currentTab, setCurrentTab] = useState('home');
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showTopUpModal, setShowTopUpModal] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+
+  // User Menu Component
+  const UserMenu = () => (
+    <div className="relative">
+      <button
+        onClick={() => setShowUserMenu(!showUserMenu)}
+        className="flex items-center space-x-2 bg-gray-800 rounded-full px-3 py-2 hover:bg-gray-700 transition-all"
+      >
+        <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
+          {user?.display_name?.charAt(0) || 'U'}
+        </div>
+        <span className="text-sm font-medium">{user?.display_name}</span>
+        <div className="text-xs bg-yellow-500 text-black px-2 py-1 rounded-full font-bold">
+          {user?.credits || 0}
+        </div>
+      </button>
+
+      {showUserMenu && (
+        <div className="absolute top-full right-0 mt-2 w-64 bg-gray-800 rounded-lg shadow-lg border border-gray-700 z-50">
+          <div className="p-4 border-b border-gray-700">
+            <div className="flex items-center space-x-3">
+              <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold">
+                {user?.display_name?.charAt(0) || 'U'}
+              </div>
+              <div>
+                <h3 className="font-bold text-white">{user?.display_name}</h3>
+                <p className="text-sm text-gray-400">@{user?.username}</p>
+                <div className="flex items-center space-x-2 mt-1">
+                  <span className="text-xs bg-yellow-500 text-black px-2 py-1 rounded-full font-bold">
+                    💰 {user?.credits || 0} เครดิต
+                  </span>
+                  {user?.is_verified && (
+                    <span className="text-xs bg-blue-500 text-white px-2 py-1 rounded-full font-bold">
+                      ✓ ยืนยันแล้ว
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-2">
+            <button
+              onClick={() => {
+                setShowTopUpModal(true);
+                setShowUserMenu(false);
+              }}
+              className="w-full flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-gray-700 transition-all text-left"
+            >
+              <span className="text-yellow-500">💳</span>
+              <span className="text-white">เติมเครดิต</span>
+            </button>
+            
+            <button
+              onClick={() => {
+                setCurrentTab('profile');
+                setShowUserMenu(false);
+              }}
+              className="w-full flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-gray-700 transition-all text-left"
+            >
+              <span className="text-blue-500">👤</span>
+              <span className="text-white">โปรไฟล์</span>
+            </button>
+
+            <div className="h-px bg-gray-700 my-2"></div>
+
+            <button
+              onClick={() => {
+                logout();
+                setShowUserMenu(false);
+              }}
+              className="w-full flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-red-900 transition-all text-left"
+            >
+              <span className="text-red-500">🚪</span>
+              <span className="text-white">ออกจากระบบ</span>
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  // Header Component
+  const AppHeader = () => (
+    <div className="fixed top-0 left-0 right-0 bg-black bg-opacity-90 backdrop-blur-sm border-b border-gray-800 z-40">
+      <div className="flex justify-between items-center px-4 py-3">
+        <div className="flex items-center space-x-2">
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+            Pego
+          </h1>
+          {currentTab !== 'home' && (
+            <span className="text-gray-400 text-lg">
+              {currentTab === 'search' && '| 🔍 ค้นหา'}
+              {currentTab === 'create' && '| ➕ สร้าง'}
+              {currentTab === 'inbox' && '| 💬 ข้อความ'}
+              {currentTab === 'profile' && '| 👤 โปรไฟล์'}
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center space-x-3">
+          {isAuthenticated ? (
+            <UserMenu />
+          ) : (
+            <button
+              onClick={() => setShowLoginModal(true)}
+              className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 px-4 py-2 rounded-lg font-bold text-sm transition-all"
+            >
+              เข้าสู่ระบบ
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderContent = () => {
+    switch (currentTab) {
+      case 'home':
+        return <TikTokFeed />;
+      case 'search':
+        return <div className="min-h-screen bg-black text-white flex items-center justify-center">
+          <div className="text-center">
+            <div className="text-6xl mb-4">🔍</div>
+            <h2 className="text-2xl font-bold mb-2">หน้าค้นหา</h2>
+            <p className="text-gray-400">ฟีเจอร์ค้นหากำลังพัฒนา...</p>
+          </div>
+        </div>;
+      case 'create':
+        return <EnhancedVideoUpload />;
+      case 'inbox':
+        return <div className="min-h-screen bg-black text-white flex items-center justify-center">
+          <div className="text-center">
+            <div className="text-6xl mb-4">💬</div>
+            <h2 className="text-2xl font-bold mb-2">กล่องข้อความ</h2>
+            <p className="text-gray-400">ระบบแชทกำลังพัฒนา...</p>
+          </div>
+        </div>;
+      case 'profile':
+        return <div className="min-h-screen bg-black text-white flex items-center justify-center">
+          <div className="text-center">
+            <div className="text-6xl mb-4">👤</div>
+            <h2 className="text-2xl font-bold mb-2">โปรไฟล์</h2>
+            <p className="text-gray-400">หน้าโปรไฟล์กำลังพัฒนา...</p>
+          </div>
+        </div>;
+      default:
+        return <TikTokFeed />;
+    }
+  };
+
+  return (
+    <div className="relative">
+      <AppHeader />
+      
+      {/* Main Content */}
+      <div className="pt-16 pb-20">
+        {renderContent()}
+      </div>
+
+      {/* Bottom Navigation */}
+      <div className="fixed bottom-0 left-0 right-0 bg-black border-t border-gray-800 z-40">
+        <div className="flex justify-around items-center py-2">
+          {[
+            { id: 'home', icon: '🏠', label: 'หน้าหลัก' },
+            { id: 'search', icon: '🔍', label: 'ค้นหา' },
+            { id: 'create', icon: '➕', label: 'สร้าง' },
+            { id: 'inbox', icon: '💬', label: 'ข้อความ' },
+            { id: 'profile', icon: '👤', label: 'โปรไฟล์' }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setCurrentTab(tab.id)}
+              className={`flex flex-col items-center p-2 rounded-lg transition-all ${
+                currentTab === tab.id 
+                  ? (tab.id === 'create' 
+                      ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white' 
+                      : 'text-white bg-gray-800')
+                  : 'text-gray-500 hover:text-gray-300'
+              }`}
+            >
+              <span className="text-xl mb-1">{tab.icon}</span>
+              <span className="text-xs font-medium">{tab.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Modals */}
+      <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
+      <CreditTopUpModal isOpen={showTopUpModal} onClose={() => setShowTopUpModal(false)} />
+    </div>
+  );
+};
   const [currentView, setCurrentView] = useState('feed');
   const { isInstalled, isOnline } = usePWA();
 
