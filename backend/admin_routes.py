@@ -629,7 +629,7 @@ async def get_admin_logs(
 async def get_user_detail(
     user_id: str,
     admin: AdminUser = Depends(get_current_admin),
-    db=None
+    db=Depends(get_db)
 ):
     """Get detailed user information"""
     user = await db.users.find_one({"id": user_id})
