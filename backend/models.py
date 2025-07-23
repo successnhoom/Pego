@@ -216,3 +216,78 @@ class UserPreference(BaseModel):
     blocked_users: List[str] = []
     
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+# Authentication Models
+class UserLogin(BaseModel):
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    google_token: Optional[str] = None
+    otp_code: Optional[str] = None
+
+class UserRegistration(BaseModel):
+    username: str
+    display_name: str
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    avatar_url: Optional[str] = None
+    bio: Optional[str] = ""
+
+class PhoneOTP(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    phone: str
+    otp_code: str
+    expires_at: datetime
+    is_used: bool = False
+    attempts: int = 0
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class AuthSession(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    session_token: str
+    expires_at: datetime
+    device_info: Optional[str] = None
+    ip_address: Optional[str] = None
+    is_active: bool = True
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+# Credit System Models  
+class CreditTransaction(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    amount: int  # Amount in credits (can be negative for spending)
+    transaction_type: str  # "topup", "spend", "refund", "bonus"
+    description: str
+    payment_method: Optional[str] = None  # "stripe", "promptpay" for topups
+    payment_session_id: Optional[str] = None
+    video_id: Optional[str] = None  # For video upload spending
+    status: str = "completed"  # "pending", "completed", "failed"
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+# Chat Models
+class ChatRoom(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    participants: List[str]  # List of user IDs
+    room_type: str = "direct"  # "direct", "group" 
+    room_name: Optional[str] = None
+    last_message: Optional[str] = None
+    last_message_at: Optional[datetime] = None
+    unread_count: Dict[str, int] = {}  # {user_id: unread_count}
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+class ChatMessage(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    room_id: str
+    sender_id: str
+    message: str
+    message_type: str = "text"  # "text", "image", "video", "system"
+    read_by: List[str] = []  # List of user IDs who read this message
+    edited_at: Optional[datetime] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+# Video Upload Models (updated for credits)
+class VideoUploadRequest(BaseModel):
+    title: str
+    description: Optional[str] = ""
+    hashtags: List[str] = []
