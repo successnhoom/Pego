@@ -22,6 +22,9 @@ class PegoAPITester:
         self.test_results = []
         self.test_video_id = None
         self.test_user_id = str(uuid.uuid4())
+        self.auth_token = None  # Store JWT token for authenticated requests
+        self.test_phone = "+66812345678"  # Test phone number
+        self.test_otp = None  # Store OTP for testing
         
     def log_test(self, test_name, success, details="", error=""):
         """Log test results"""
