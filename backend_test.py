@@ -820,6 +820,611 @@ class PegoAPITester:
             self.log_test("E2E Integration Flow", False, "", str(e))
             return False
 
+    # Admin Dashboard Tests
+    def test_admin_login(self):
+        """Test admin login with default credentials"""
+        try:
+            login_data = {
+                "username": "admin",
+                "password": "admin123"
+            }
+            
+            response = self.session.post(
+                f"{self.base_url}/admin/login",
+                json=login_data
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                required_fields = ["access_token", "token_type", "admin"]
+                
+                if all(field in data for field in required_fields):
+                    self.admin_token = data["access_token"]
+                    self.log_test("Admin Login", True, 
+                                f"Successfully logged in as admin: {data['admin']['username']}")
+                    return data
+                else:
+                    self.log_test("Admin Login", False, "", 
+                                f"Missing required fields. Got: {list(data.keys())}")
+                    return None
+            else:
+                self.log_test("Admin Login", False, "", 
+                            f"Status: {response.status_code}, Response: {response.text}")
+                return None
+                
+        except Exception as e:
+            self.log_test("Admin Login", False, "", str(e))
+            return None
+
+    def test_admin_dashboard_stats(self):
+        """Test admin dashboard statistics endpoint"""
+        if not hasattr(self, 'admin_token') or not self.admin_token:
+            self.log_test("Admin Dashboard Stats", False, "", "No admin token available")
+            return None
+            
+        try:
+            headers = {"Authorization": f"Bearer {self.admin_token}"}
+            response = self.session.get(f"{self.base_url}/admin/dashboard", headers=headers)
+            
+            if response.status_code == 200:
+                data = response.json()
+                required_sections = ["overview", "today", "current_competition"]
+                
+                if all(section in data for section in required_sections):
+                    overview = data["overview"]
+                    today = data["today"]
+                    
+                    self.log_test("Admin Dashboard Stats", True, 
+                                f"Dashboard loaded: {overview['total_users']} users, {overview['total_videos']} videos, Today: {today['new_users']} new users")
+                    return data
+                else:
+                    self.log_test("Admin Dashboard Stats", False, "", 
+                                f"Missing required sections. Got: {list(data.keys())}")
+                    return None
+            else:
+                self.log_test("Admin Dashboard Stats", False, "", 
+                            f"Status: {response.status_code}, Response: {response.text}")
+                return None
+                
+        except Exception as e:
+            self.log_test("Admin Dashboard Stats", False, "", str(e))
+            return None
+
+    def test_admin_users_list(self):
+        """Test admin users listing endpoint"""
+        if not hasattr(self, 'admin_token') or not self.admin_token:
+            self.log_test("Admin Users List", False, "", "No admin token available")
+            return None
+            
+        try:
+            headers = {"Authorization": f"Bearer {self.admin_token}"}
+            response = self.session.get(f"{self.base_url}/admin/users", headers=headers)
+            
+            if response.status_code == 200:
+                data = response.json()
+                required_fields = ["users", "total", "limit", "offset"]
+                
+                if all(field in data for field in required_fields):
+                    users = data["users"]
+                    self.log_test("Admin Users List", True, 
+                                f"Retrieved {len(users)} users out of {data['total']} total")
+                    return data
+                else:
+                    self.log_test("Admin Users List", False, "", 
+                                f"Missing required fields. Got: {list(data.keys())}")
+                    return None
+            else:
+                self.log_test("Admin Users List", False, "", 
+                            f"Status: {response.status_code}, Response: {response.text}")
+                return None
+                
+        except Exception as e:
+            self.log_test("Admin Users List", False, "", str(e))
+            return None
+
+    def test_admin_user_detail(self):
+        """Test admin user detail endpoint"""
+        if not hasattr(self, 'admin_token') or not self.admin_token:
+            self.log_test("Admin User Detail", False, "", "No admin token available")
+            return None
+        
+        if not self.test_user_id:
+            self.log_test("Admin User Detail", False, "", "No test user ID available")
+            return None
+            
+        try:
+            headers = {"Authorization": f"Bearer {self.admin_token}"}
+            response = self.session.get(f"{self.base_url}/admin/users/{self.test_user_id}", headers=headers)
+            
+            if response.status_code == 200:
+                data = response.json()
+                required_fields = ["user", "stats", "recent_videos", "recent_transactions"]
+                
+                if all(field in data for field in required_fields):
+                    user = data["user"]
+                    stats = data["stats"]
+                    self.log_test("Admin User Detail", True, 
+                                f"Retrieved user details: {user['username']}, {stats['video_count']} videos, {stats['current_credits']} credits")
+                    return data
+                else:
+                    self.log_test("Admin User Detail", False, "", 
+                                f"Missing required fields. Got: {list(data.keys())}")
+                    return None
+            else:
+                self.log_test("Admin User Detail", False, "", 
+                            f"Status: {response.status_code}, Response: {response.text}")
+                return None
+                
+        except Exception as e:
+            self.log_test("Admin User Detail", False, "", str(e))
+            return None
+
+    def test_admin_user_ban(self):
+        """Test admin user ban functionality"""
+        if not hasattr(self, 'admin_token') or not self.admin_token:
+            self.log_test("Admin User Ban", False, "", "No admin token available")
+            return None
+        
+        if not self.test_user_id:
+            self.log_test("Admin User Ban", False, "", "No test user ID available")
+            return None
+            
+        try:
+            headers = {"Authorization": f"Bearer {self.admin_token}"}
+            ban_data = {"reason": "Testing ban functionality"}
+            
+            response = self.session.post(
+                f"{self.base_url}/admin/users/{self.test_user_id}/ban",
+                headers=headers,
+                params={"reason": "Testing ban functionality"}
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                if "message" in data and "banned" in data["message"]:
+                    self.log_test("Admin User Ban", True, 
+                                f"Successfully banned user: {data['message']}")
+                    return data
+                else:
+                    self.log_test("Admin User Ban", False, "", 
+                                f"Unexpected response format: {data}")
+                    return None
+            else:
+                self.log_test("Admin User Ban", False, "", 
+                            f"Status: {response.status_code}, Response: {response.text}")
+                return None
+                
+        except Exception as e:
+            self.log_test("Admin User Ban", False, "", str(e))
+            return None
+
+    def test_admin_user_unban(self):
+        """Test admin user unban functionality"""
+        if not hasattr(self, 'admin_token') or not self.admin_token:
+            self.log_test("Admin User Unban", False, "", "No admin token available")
+            return None
+        
+        if not self.test_user_id:
+            self.log_test("Admin User Unban", False, "", "No test user ID available")
+            return None
+            
+        try:
+            headers = {"Authorization": f"Bearer {self.admin_token}"}
+            
+            response = self.session.post(
+                f"{self.base_url}/admin/users/{self.test_user_id}/unban",
+                headers=headers
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                if "message" in data and "unbanned" in data["message"]:
+                    self.log_test("Admin User Unban", True, 
+                                f"Successfully unbanned user: {data['message']}")
+                    return data
+                else:
+                    self.log_test("Admin User Unban", False, "", 
+                                f"Unexpected response format: {data}")
+                    return None
+            else:
+                self.log_test("Admin User Unban", False, "", 
+                            f"Status: {response.status_code}, Response: {response.text}")
+                return None
+                
+        except Exception as e:
+            self.log_test("Admin User Unban", False, "", str(e))
+            return None
+
+    def test_admin_user_credit_adjustment(self):
+        """Test admin user credit adjustment"""
+        if not hasattr(self, 'admin_token') or not self.admin_token:
+            self.log_test("Admin Credit Adjustment", False, "", "No admin token available")
+            return None
+        
+        if not self.test_user_id:
+            self.log_test("Admin Credit Adjustment", False, "", "No test user ID available")
+            return None
+            
+        try:
+            headers = {"Authorization": f"Bearer {self.admin_token}"}
+            adjustment_data = {
+                "amount": 50,
+                "reason": "Testing credit adjustment functionality"
+            }
+            
+            response = self.session.post(
+                f"{self.base_url}/admin/users/{self.test_user_id}/credits/adjust",
+                headers=headers,
+                json=adjustment_data
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                required_fields = ["message", "previous_balance", "adjustment", "new_balance"]
+                
+                if all(field in data for field in required_fields):
+                    self.log_test("Admin Credit Adjustment", True, 
+                                f"Credits adjusted: {data['previous_balance']} → {data['new_balance']} (+{data['adjustment']})")
+                    return data
+                else:
+                    self.log_test("Admin Credit Adjustment", False, "", 
+                                f"Missing required fields. Got: {list(data.keys())}")
+                    return None
+            else:
+                self.log_test("Admin Credit Adjustment", False, "", 
+                            f"Status: {response.status_code}, Response: {response.text}")
+                return None
+                
+        except Exception as e:
+            self.log_test("Admin Credit Adjustment", False, "", str(e))
+            return None
+
+    def test_admin_videos_list(self):
+        """Test admin videos listing endpoint"""
+        if not hasattr(self, 'admin_token') or not self.admin_token:
+            self.log_test("Admin Videos List", False, "", "No admin token available")
+            return None
+            
+        try:
+            headers = {"Authorization": f"Bearer {self.admin_token}"}
+            response = self.session.get(f"{self.base_url}/admin/videos", headers=headers)
+            
+            if response.status_code == 200:
+                data = response.json()
+                required_fields = ["videos", "total", "limit", "offset"]
+                
+                if all(field in data for field in required_fields):
+                    videos = data["videos"]
+                    self.log_test("Admin Videos List", True, 
+                                f"Retrieved {len(videos)} videos out of {data['total']} total")
+                    return data
+                else:
+                    self.log_test("Admin Videos List", False, "", 
+                                f"Missing required fields. Got: {list(data.keys())}")
+                    return None
+            else:
+                self.log_test("Admin Videos List", False, "", 
+                            f"Status: {response.status_code}, Response: {response.text}")
+                return None
+                
+        except Exception as e:
+            self.log_test("Admin Videos List", False, "", str(e))
+            return None
+
+    def test_admin_video_analytics(self):
+        """Test admin video analytics endpoint"""
+        if not hasattr(self, 'admin_token') or not self.admin_token:
+            self.log_test("Admin Video Analytics", False, "", "No admin token available")
+            return None
+        
+        if not self.test_video_id:
+            self.log_test("Admin Video Analytics", False, "", "No test video ID available")
+            return None
+            
+        try:
+            headers = {"Authorization": f"Bearer {self.admin_token}"}
+            response = self.session.get(f"{self.base_url}/admin/videos/{self.test_video_id}/analytics", headers=headers)
+            
+            if response.status_code == 200:
+                data = response.json()
+                required_fields = ["video", "user", "total_interactions", "interaction_breakdown", "engagement_rate"]
+                
+                if all(field in data for field in required_fields):
+                    video = data["video"]
+                    self.log_test("Admin Video Analytics", True, 
+                                f"Video analytics: {video['title']}, {data['total_interactions']} interactions, {data['engagement_rate']}% engagement")
+                    return data
+                else:
+                    self.log_test("Admin Video Analytics", False, "", 
+                                f"Missing required fields. Got: {list(data.keys())}")
+                    return None
+            else:
+                self.log_test("Admin Video Analytics", False, "", 
+                            f"Status: {response.status_code}, Response: {response.text}")
+                return None
+                
+        except Exception as e:
+            self.log_test("Admin Video Analytics", False, "", str(e))
+            return None
+
+    def test_admin_video_moderation(self):
+        """Test admin video moderation functionality"""
+        if not hasattr(self, 'admin_token') or not self.admin_token:
+            self.log_test("Admin Video Moderation", False, "", "No admin token available")
+            return None
+        
+        if not self.test_video_id:
+            self.log_test("Admin Video Moderation", False, "", "No test video ID available")
+            return None
+            
+        try:
+            headers = {"Authorization": f"Bearer {self.admin_token}"}
+            moderation_data = {
+                "video_ids": [self.test_video_id],
+                "action": "approve",
+                "reason": "Testing moderation functionality"
+            }
+            
+            response = self.session.post(
+                f"{self.base_url}/admin/videos/moderate",
+                headers=headers,
+                json=moderation_data
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                required_fields = ["message", "action", "affected_count"]
+                
+                if all(field in data for field in required_fields):
+                    self.log_test("Admin Video Moderation", True, 
+                                f"Moderated {data['affected_count']} videos with action: {data['action']}")
+                    return data
+                else:
+                    self.log_test("Admin Video Moderation", False, "", 
+                                f"Missing required fields. Got: {list(data.keys())}")
+                    return None
+            else:
+                self.log_test("Admin Video Moderation", False, "", 
+                            f"Status: {response.status_code}, Response: {response.text}")
+                return None
+                
+        except Exception as e:
+            self.log_test("Admin Video Moderation", False, "", str(e))
+            return None
+
+    def test_admin_financial_overview(self):
+        """Test admin financial overview endpoint"""
+        if not hasattr(self, 'admin_token') or not self.admin_token:
+            self.log_test("Admin Financial Overview", False, "", "No admin token available")
+            return None
+            
+        try:
+            headers = {"Authorization": f"Bearer {self.admin_token}"}
+            response = self.session.get(f"{self.base_url}/admin/financial/overview", headers=headers)
+            
+            if response.status_code == 200:
+                data = response.json()
+                required_fields = ["period", "overview", "credits", "daily_revenue"]
+                
+                if all(field in data for field in required_fields):
+                    overview = data["overview"]
+                    credits = data["credits"]
+                    self.log_test("Admin Financial Overview", True, 
+                                f"Financial overview: ฿{overview['total_revenue']} revenue, {credits['total_sold']} credits sold")
+                    return data
+                else:
+                    self.log_test("Admin Financial Overview", False, "", 
+                                f"Missing required fields. Got: {list(data.keys())}")
+                    return None
+            else:
+                self.log_test("Admin Financial Overview", False, "", 
+                            f"Status: {response.status_code}, Response: {response.text}")
+                return None
+                
+        except Exception as e:
+            self.log_test("Admin Financial Overview", False, "", str(e))
+            return None
+
+    def test_admin_financial_settings_get(self):
+        """Test admin financial settings retrieval"""
+        if not hasattr(self, 'admin_token') or not self.admin_token:
+            self.log_test("Admin Financial Settings (Get)", False, "", "No admin token available")
+            return None
+            
+        try:
+            headers = {"Authorization": f"Bearer {self.admin_token}"}
+            response = self.session.get(f"{self.base_url}/admin/financial/settings", headers=headers)
+            
+            if response.status_code == 200:
+                data = response.json()
+                expected_fields = ["video_upload_price", "prize_pool_percentage", "admin_fee_percentage"]
+                
+                if any(field in data for field in expected_fields):
+                    self.log_test("Admin Financial Settings (Get)", True, 
+                                f"Financial settings: ฿{data.get('video_upload_price', 30)} per video, {data.get('prize_pool_percentage', 70)}% prize pool")
+                    return data
+                else:
+                    self.log_test("Admin Financial Settings (Get)", False, "", 
+                                f"Missing expected fields. Got: {list(data.keys())}")
+                    return None
+            else:
+                self.log_test("Admin Financial Settings (Get)", False, "", 
+                            f"Status: {response.status_code}, Response: {response.text}")
+                return None
+                
+        except Exception as e:
+            self.log_test("Admin Financial Settings (Get)", False, "", str(e))
+            return None
+
+    def test_admin_financial_settings_update(self):
+        """Test admin financial settings update"""
+        if not hasattr(self, 'admin_token') or not self.admin_token:
+            self.log_test("Admin Financial Settings (Update)", False, "", "No admin token available")
+            return None
+            
+        try:
+            headers = {"Authorization": f"Bearer {self.admin_token}"}
+            settings_data = {
+                "video_upload_price": 30.0,
+                "prize_pool_percentage": 70.0,
+                "admin_fee_percentage": 30.0,
+                "min_payout_amount": 100.0
+            }
+            
+            response = self.session.put(
+                f"{self.base_url}/admin/financial/settings",
+                headers=headers,
+                json=settings_data
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                if "message" in data and "updated" in data["message"]:
+                    self.log_test("Admin Financial Settings (Update)", True, 
+                                f"Financial settings updated successfully: {data['message']}")
+                    return data
+                else:
+                    self.log_test("Admin Financial Settings (Update)", False, "", 
+                                f"Unexpected response format: {data}")
+                    return None
+            else:
+                self.log_test("Admin Financial Settings (Update)", False, "", 
+                            f"Status: {response.status_code}, Response: {response.text}")
+                return None
+                
+        except Exception as e:
+            self.log_test("Admin Financial Settings (Update)", False, "", str(e))
+            return None
+
+    def test_admin_system_settings_get(self):
+        """Test admin system settings retrieval"""
+        if not hasattr(self, 'admin_token') or not self.admin_token:
+            self.log_test("Admin System Settings (Get)", False, "", "No admin token available")
+            return None
+            
+        try:
+            headers = {"Authorization": f"Bearer {self.admin_token}"}
+            response = self.session.get(f"{self.base_url}/admin/system/settings", headers=headers)
+            
+            if response.status_code == 200:
+                data = response.json()
+                expected_fields = ["video_price", "prize_percentage", "competition_duration_days", "max_video_size_mb"]
+                
+                if any(field in data for field in expected_fields):
+                    self.log_test("Admin System Settings (Get)", True, 
+                                f"System settings: {data.get('competition_duration_days', 7)} day competitions, {data.get('max_video_size_mb', 100)}MB max size")
+                    return data
+                else:
+                    self.log_test("Admin System Settings (Get)", False, "", 
+                                f"Missing expected fields. Got: {list(data.keys())}")
+                    return None
+            else:
+                self.log_test("Admin System Settings (Get)", False, "", 
+                            f"Status: {response.status_code}, Response: {response.text}")
+                return None
+                
+        except Exception as e:
+            self.log_test("Admin System Settings (Get)", False, "", str(e))
+            return None
+
+    def test_admin_system_settings_update(self):
+        """Test admin system settings update"""
+        if not hasattr(self, 'admin_token') or not self.admin_token:
+            self.log_test("Admin System Settings (Update)", False, "", "No admin token available")
+            return None
+            
+        try:
+            headers = {"Authorization": f"Bearer {self.admin_token}"}
+            settings_data = {
+                "video_price": 30.0,
+                "prize_percentage": 70.0,
+                "competition_duration_days": 7,
+                "max_video_size_mb": 100,
+                "credits_per_thb": 1
+            }
+            
+            response = self.session.put(
+                f"{self.base_url}/admin/system/settings",
+                headers=headers,
+                json=settings_data
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                if "message" in data and "updated" in data["message"]:
+                    self.log_test("Admin System Settings (Update)", True, 
+                                f"System settings updated successfully: {data['message']}")
+                    return data
+                else:
+                    self.log_test("Admin System Settings (Update)", False, "", 
+                                f"Unexpected response format: {data}")
+                    return None
+            else:
+                self.log_test("Admin System Settings (Update)", False, "", 
+                            f"Status: {response.status_code}, Response: {response.text}")
+                return None
+                
+        except Exception as e:
+            self.log_test("Admin System Settings (Update)", False, "", str(e))
+            return None
+
+    def run_admin_dashboard_tests(self):
+        """Run comprehensive Admin Dashboard tests"""
+        print("=" * 80)
+        print("PEGO ADMIN DASHBOARD TESTING")
+        print("=" * 80)
+        print(f"Testing admin endpoints at: {self.base_url}/admin")
+        print()
+        
+        # Initialize admin token
+        self.admin_token = None
+        
+        # Test 1: Admin Authentication
+        print("🔐 Testing Admin Authentication...")
+        if not self.test_admin_login():
+            print("❌ CRITICAL: Admin login failed - cannot proceed with admin tests")
+            return False
+        
+        # Test 2: Dashboard Stats
+        print("📊 Testing Dashboard Statistics...")
+        self.test_admin_dashboard_stats()
+        
+        # Test 3: User Management
+        print("👥 Testing User Management...")
+        self.test_admin_users_list()
+        
+        # Ensure we have a test user for detailed tests
+        if self.test_user_id:
+            self.test_admin_user_detail()
+            self.test_admin_user_ban()
+            self.test_admin_user_unban()
+            self.test_admin_user_credit_adjustment()
+        else:
+            print("⚠️  No test user available for detailed user management tests")
+        
+        # Test 4: Video Management
+        print("🎥 Testing Video Management...")
+        self.test_admin_videos_list()
+        
+        if self.test_video_id:
+            self.test_admin_video_analytics()
+            self.test_admin_video_moderation()
+        else:
+            print("⚠️  No test video available for detailed video management tests")
+        
+        # Test 5: Financial Management
+        print("💰 Testing Financial Management...")
+        self.test_admin_financial_overview()
+        self.test_admin_financial_settings_get()
+        self.test_admin_financial_settings_update()
+        
+        # Test 6: System Settings
+        print("⚙️  Testing System Settings...")
+        self.test_admin_system_settings_get()
+        self.test_admin_system_settings_update()
+        
+        return True
+
     def run_authentication_and_credit_system_tests(self):
         """Run comprehensive tests for Authentication and Credit Systems"""
         print("=" * 80)
