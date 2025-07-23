@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Comprehensive Backend API Testing for Pego Video Contest Platform
-Tests all backend endpoints and business logic
+Tests dual payment system (Stripe & PromptPay) and all backend endpoints
 """
 
 import requests
@@ -10,6 +10,7 @@ import time
 import uuid
 from datetime import datetime
 import os
+import base64
 
 # Get backend URL from environment
 BACKEND_URL = "https://c7886ec9-8a09-4889-9731-41fa6f5b4275.preview.emergentagent.com/api"
@@ -19,6 +20,8 @@ class PegoAPITester:
         self.base_url = BACKEND_URL
         self.session = requests.Session()
         self.test_results = []
+        self.test_video_id = None
+        self.test_user_id = str(uuid.uuid4())
         
     def log_test(self, test_name, success, details="", error=""):
         """Log test results"""
