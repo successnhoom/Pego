@@ -363,8 +363,7 @@ metadata:
   run_ui: false
 
 test_plan:
-  current_focus:
-    - "Admin Dashboard System - Complete Backend & Frontend"
+  current_focus: []
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
