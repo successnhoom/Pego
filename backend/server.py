@@ -660,7 +660,7 @@ async def get_video(video_id: str):
         if not video:
             raise HTTPException(status_code=404, detail="Video not found")
         
-        return video
+        return serialize_doc(video)
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
