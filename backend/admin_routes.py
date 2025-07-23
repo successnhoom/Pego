@@ -24,6 +24,12 @@ class AdminLogin(BaseModel):
     username: str
     password: str
 
+class AdminCreate(BaseModel):
+    username: str
+    email: str
+    password: str
+    role: str = "admin"  # admin, moderator, super_admin
+
 class CompetitionCreate(BaseModel):
     title: str
     description: Optional[str] = ""
@@ -34,13 +40,26 @@ class CompetitionCreate(BaseModel):
 
 class VideoModerationAction(BaseModel):
     video_ids: List[str]
-    action: str  # "suspend", "approve", "feature", "remove_feature"
+    action: str  # "suspend", "approve", "feature", "remove_feature", "delete"
     reason: Optional[str] = ""
 
 class UserModerationAction(BaseModel):
     user_ids: List[str]
-    action: str  # "suspend", "activate", "verify", "unverify"
+    action: str  # "suspend", "activate", "verify", "unverify", "ban", "unban"
     reason: Optional[str] = ""
+
+class SystemSettings(BaseModel):
+    video_price: float = 30.0  # THB per video
+    prize_percentage: float = 70.0  # Percentage of revenue for prizes
+    competition_duration_days: int = 7
+    max_video_size_mb: int = 100
+    credits_per_thb: int = 1  # 1 THB = 1 Credit
+
+class FinancialSettings(BaseModel):
+    video_upload_price: float
+    prize_pool_percentage: float
+    admin_fee_percentage: float = 30.0
+    min_payout_amount: float = 100.0
 
 # Dependency functions
 async def get_current_admin(credentials: HTTPAuthorizationCredentials = Depends(security), db=None):
