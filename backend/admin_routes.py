@@ -825,7 +825,7 @@ async def delete_video(
 async def get_video_analytics(
     video_id: str,
     admin: AdminUser = Depends(get_current_admin),
-    db=None
+    db=Depends(get_db)
 ):
     """Get detailed analytics for a video"""
     video = await db.videos.find_one({"id": video_id})
