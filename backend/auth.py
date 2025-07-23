@@ -176,6 +176,9 @@ class AuthManager:
 
     async def verify_otp(self, phone: str, otp_code: str) -> bool:
         """Verify OTP code"""
+        # Clean phone number (same as send_otp)
+        phone = phone.replace('+', '').replace('-', '').replace(' ', '')
+        
         # Find valid OTP
         otp_record = await self.db.phone_otps.find_one({
             "phone": phone,
