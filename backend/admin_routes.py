@@ -600,7 +600,7 @@ async def get_admin_logs(
     limit: int = Query(100, le=500),
     offset: int = 0,
     admin: AdminUser = Depends(get_current_admin),
-    db=None
+    db=Depends(get_db)
 ):
     query = {}
     if action:
