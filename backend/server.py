@@ -157,11 +157,59 @@ async def init_stripe():
         webhook_url = f"{os.environ.get('FRONTEND_URL', 'http://localhost:3000')}/api/webhook/stripe"
         stripe_checkout = StripeCheckout(api_key=stripe_api_key, webhook_url=webhook_url)
 
+def calculate_crc16(payload: str) -> str:
+    """Calculate CRC16 checksum for PromptPay QR"""
+    crc = 0xFFFF
+    for char in payload:
+        crc ^= (ord(char) << 8)
+        for _ in range(8):
+            if crc & 0x8000:
+                crc = (crc << 1) ^ 0x1021
+            else:
+                crc <<= 1
+            crc &= 0xFFFF
+    return format(crc, '04X')
+
 def generate_promptpay_qr(promptpay_id: str, amount: float) -> dict:
-    """Generate PromptPay QR code data and image"""
+    """Generate PromptPay QR code data and image using EMV format"""
     try:
-        # Generate PromptPay QR code data using pypromptpay
-        qr_data = pp_qrcode(account=promptpay_id, money=str(amount), currency="THB")
+        # Build EMV QR payload
+        payload_parts = [
+            '000201',  # Payload format indicator
+            '010212',  # Version (12 = dynamic)
+        ]
+        
+        # Merchant Account Information (PromptPay)
+        merchant_info = '0016A000000677010111'  # PromptPay AID
+        
+        # Add payee ID (phone number or ID)
+        if len(promptpay_id) == 13:  # National ID
+            payee_data = f'0213{promptpay_id}'
+        else:  # Phone number (remove leading 0 if exists)
+            phone = promptpay_id.lstrip('0')
+            payee_data = f'01{len(phone):02d}{phone}'
+        
+        merchant_account = merchant_info + payee_data
+        payload_parts.append(f'29{len(merchant_account):02d}{merchant_account}')
+        
+        # Currency and country
+        payload_parts.append('5303764')  # THB currency code
+        payload_parts.append('5802TH')  # Thailand country code
+        
+        # Transaction amount
+        if amount > 0:
+            amount_str = f'{amount:.2f}'
+            payload_parts.append(f'54{len(amount_str):02d}{amount_str}')
+        
+        # CRC placeholder
+        payload_parts.append('6304')
+        
+        # Calculate CRC
+        payload_without_crc = ''.join(payload_parts)
+        crc = calculate_crc16(payload_without_crc)
+        
+        # Final payload
+        qr_data = payload_without_crc + crc
         
         # Create QR code image
         qr = qrcode.QRCode(
