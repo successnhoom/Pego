@@ -317,6 +317,7 @@ async def create_payment_session(payment_request: PaymentMethodRequest):
             raise HTTPException(status_code=400, detail="Invalid payment method")
         
     except Exception as e:
+        logger.error(f"Payment creation failed: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to create payment session: {str(e)}")
 
 @api_router.get("/payment/status/stripe/{session_id}")
