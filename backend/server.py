@@ -214,7 +214,7 @@ async def initiate_upload(video_data: VideoCreate):
         )
         
         result = await db.videos.insert_one(video.dict())
-        video_id = str(result.inserted_id)
+        video_id = video.id  # Use the custom UUID ID, not MongoDB ObjectId
         
         return {
             "video_id": video_id,
