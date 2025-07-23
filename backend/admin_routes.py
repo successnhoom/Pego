@@ -293,7 +293,7 @@ async def create_competition(
 async def end_competition(
     competition_id: str,
     admin: AdminUser = Depends(get_current_admin),
-    db=None
+    db=Depends(get_db)
 ):
     competition = await db.competitions.find_one({"id": competition_id})
     if not competition:
