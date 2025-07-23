@@ -881,8 +881,8 @@ async def get_video_analytics(
     user = await db.users.find_one({"id": video["user_id"]})
     
     return {
-        "video": video,
-        "user": user,
+        "video": serialize_doc(video),
+        "user": serialize_doc(user),
         "total_interactions": len(interactions),
         "interaction_breakdown": interaction_stats,
         "hourly_views": hourly_views,
