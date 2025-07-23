@@ -1157,16 +1157,26 @@ async def stripe_webhook(request: Request):
         raise HTTPException(status_code=500, detail=f"Webhook failed: {str(e)}")
 
 # Include router
+# Include main API router
 app.include_router(api_router)
 
-# Include admin router with dependency injection
-@admin_router.api_route("/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
-async def admin_route_with_db(path: str, request: Request):
-    # This is a workaround to inject db dependency into admin routes
-    # In a real app, you'd use proper dependency injection
-    pass
+# Fix dependency injection for admin routes
+from functools import wraps
 
-# Add admin router manually
+def inject_db(route_func):
+    @wraps(route_func)
+    async def wrapper(*args, **kwargs):
+        # Inject db into kwargs
+        kwargs['db'] = db
+        return await route_func(*args, **kwargs)
+    return wrapper
+
+# Apply db injection to admin routes
+for route in admin_router.routes:
+    if hasattr(route, 'endpoint'):
+        route.endpoint = inject_db(route.endpoint)
+
+# Include admin router
 app.include_router(admin_router)
 
 # CORS
