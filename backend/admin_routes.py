@@ -172,7 +172,7 @@ async def admin_login(login_data: AdminLogin, db=Depends(get_db)):
 
 # Dashboard overview
 @admin_router.get("/dashboard")
-async def get_dashboard_stats(admin: AdminUser = Depends(get_current_admin), db=None):
+async def get_dashboard_stats(admin: AdminUser = Depends(get_current_admin), db=Depends(get_db)):
     # Get current date ranges
     now = datetime.utcnow()
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
