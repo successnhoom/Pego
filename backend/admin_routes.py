@@ -103,7 +103,7 @@ def verify_password(password: str, hashed: str) -> bool:
 
 # Authentication routes
 @admin_router.post("/register")
-async def create_admin(admin_data: AdminCreate, db):
+async def create_admin(admin_data: AdminCreate, db=Depends(get_db)):
     """Create new admin user (for setup only)"""
     # Check if admin with username already exists
     existing_admin = await db.admin_users.find_one({"username": admin_data.username})
