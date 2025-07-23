@@ -1040,6 +1040,13 @@ const MainApp = () => {
 };
 // Main App Component wrapped with Providers
 function App() {
+  // Check if we're on admin route
+  const isAdminRoute = window.location.pathname.startsWith('/admin');
+  
+  if (isAdminRoute) {
+    return <AdminApp />;
+  }
+
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
       <AuthProvider>
