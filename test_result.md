@@ -126,7 +126,7 @@ backend:
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "NA"
           agent: "main"
@@ -137,6 +137,9 @@ backend:
         - working: true
           agent: "main"
           comment: "PromptPay integration implemented successfully with EMV QR code generation. Both Stripe and PromptPay payment methods now available. New endpoints: /api/payment/methods, /api/payment/create, /api/payment/status/stripe/{session_id}, /api/payment/status/promptpay/{session_id}, /api/payment/confirm/promptpay/{session_id}"
+        - working: true
+          agent: "testing"
+          comment: "Comprehensive dual payment system testing completed successfully! ✅ All 15 tests passed (100% success rate). Key features verified: Payment Methods API returns both Stripe and PromptPay options (30 THB), Video Upload Initiation creates video records correctly, Stripe Payment Flow creates sessions and handles status checking, PromptPay Payment Flow generates EMV QR codes and handles confirmation, Video File Upload works after payment confirmation, Competition Round Updates track revenue and prize pools correctly (168 THB prize pool from 8 videos), Complete Integration Flow from video creation to upload works end-to-end. Fixed critical MongoDB ObjectId serialization issues and missing route decorator for video upload endpoint. Both payment methods are fully functional with proper error handling and database consistency."
 
   - task: "View Counting System"
     implemented: true
