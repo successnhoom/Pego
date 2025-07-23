@@ -738,7 +738,194 @@ class PegoAPITester:
             self.log_test("Root Endpoint", False, "", str(e))
             return False
 
-    def test_payment_methods_api(self):
+    def test_root_endpoint(self):
+        """Test basic API connectivity"""
+        try:
+            response = self.session.get(f"{self.base_url}/")
+            if response.status_code == 200:
+                data = response.json()
+                if "message" in data and "Pego" in data["message"]:
+                    self.log_test("Root Endpoint", True, f"Response: {data}")
+                    return True
+                else:
+                    self.log_test("Root Endpoint", False, "", f"Unexpected response: {data}")
+                    return False
+            else:
+                self.log_test("Root Endpoint", False, "", f"Status: {response.status_code}")
+                return False
+        except Exception as e:
+            self.log_test("Root Endpoint", False, "", str(e))
+            return False
+
+    def test_integration_end_to_end_flow(self):
+        """Test complete end-to-end flow: Register → Top-up → Upload"""
+        try:
+            print("\n" + "="*60)
+            print("TESTING END-TO-END INTEGRATION FLOW")
+            print("="*60)
+            
+            # Step 1: Phone authentication
+            print("Step 1: Phone Authentication...")
+            if not self.test_phone_otp_send():
+                self.log_test("E2E Integration Flow", False, "", "Failed at phone OTP send")
+                return False
+            
+            if not self.test_phone_otp_verify_valid():
+                self.log_test("E2E Integration Flow", False, "", "Failed at phone OTP verify")
+                return False
+            
+            print("✅ Step 1: User authenticated successfully")
+            
+            # Step 2: Credit top-up
+            print("Step 2: Credit Top-up...")
+            topup_result = self.test_credit_topup_promptpay()
+            if not topup_result:
+                self.log_test("E2E Integration Flow", False, "", "Failed at credit top-up")
+                return False
+            
+            # Confirm payment
+            confirm_result = self.test_promptpay_confirmation()
+            if not confirm_result:
+                self.log_test("E2E Integration Flow", False, "", "Failed at payment confirmation")
+                return False
+            
+            print("✅ Step 2: Credits added successfully")
+            
+            # Step 3: Video upload initiation
+            print("Step 3: Video Upload...")
+            upload_result = self.test_video_upload_with_credits()
+            if not upload_result:
+                self.log_test("E2E Integration Flow", False, "", "Failed at video upload initiation")
+                return False
+            
+            # Step 4: Video file upload
+            file_upload_result = self.test_video_file_upload_credit_deduction()
+            if not file_upload_result:
+                self.log_test("E2E Integration Flow", False, "", "Failed at video file upload")
+                return False
+            
+            print("✅ Step 3: Video uploaded and credits deducted")
+            
+            # Step 5: Verify final state
+            print("Step 4: Verification...")
+            final_balance = self.test_credit_balance()
+            if final_balance:
+                print(f"✅ Step 4: Final credit balance: {final_balance['credits']}")
+            
+            self.log_test("E2E Integration Flow", True, 
+                        "Complete flow successful: Authentication → Credit Top-up → Video Upload")
+            return True
+            
+        except Exception as e:
+            self.log_test("E2E Integration Flow", False, "", str(e))
+            return False
+
+    def run_authentication_and_credit_system_tests(self):
+        """Run comprehensive tests for Authentication and Credit Systems"""
+        print("=" * 80)
+        print("PEGO AUTHENTICATION & CREDIT SYSTEM TESTING")
+        print("=" * 80)
+        print(f"Testing backend at: {self.base_url}")
+        print(f"Test Phone: {self.test_phone}")
+        print()
+        
+        # Test 1: Basic connectivity
+        if not self.test_root_endpoint():
+            print("❌ CRITICAL: Cannot connect to backend API")
+            return False
+        
+        print("\n" + "="*50)
+        print("AUTHENTICATION SYSTEM TESTS")
+        print("="*50)
+        
+        # Test 2-6: Phone OTP Authentication
+        self.test_phone_otp_send()
+        self.test_phone_otp_verify_invalid()
+        self.test_phone_otp_verify_valid()
+        
+        # Test 7-8: Google OAuth (with invalid token)
+        self.test_google_oauth_invalid_token()
+        
+        # Test 9-11: User Management
+        self.test_auth_me_without_token()
+        self.test_auth_me_with_token()
+        self.test_profile_update()
+        
+        print("\n" + "="*50)
+        print("CREDIT SYSTEM TESTS")
+        print("="*50)
+        
+        # Test 12-16: Credit System
+        self.test_credit_balance()
+        self.test_credit_topup_promptpay()
+        self.test_credit_topup_stripe()
+        self.test_promptpay_confirmation()
+        
+        print("\n" + "="*50)
+        print("UPDATED VIDEO UPLOAD SYSTEM TESTS")
+        print("="*50)
+        
+        # Test 17-21: Updated Video Upload System
+        self.test_video_upload_without_auth()
+        self.test_video_upload_insufficient_credits()
+        self.test_video_upload_with_credits()
+        self.test_video_file_upload_credit_deduction()
+        self.test_video_ownership_verification()
+        
+        print("\n" + "="*50)
+        print("INTEGRATION TESTS")
+        print("="*50)
+        
+        # Test 22: End-to-End Integration
+        self.test_integration_end_to_end_flow()
+        
+        # Summary
+        print("\n" + "=" * 80)
+        print("AUTHENTICATION & CREDIT SYSTEM TEST SUMMARY")
+        print("=" * 80)
+        
+        passed = sum(1 for result in self.test_results if result["success"])
+        total = len(self.test_results)
+        
+        print(f"Total Tests: {total}")
+        print(f"Passed: {passed}")
+        print(f"Failed: {total - passed}")
+        print(f"Success Rate: {(passed/total)*100:.1f}%")
+        
+        # Categorize results
+        critical_tests = [
+            "Root Endpoint", "Phone OTP Send", "Phone OTP Verify (Valid)", 
+            "Auth Me (With Token)", "Credit Balance", "Credit Top-up (PromptPay)",
+            "PromptPay Confirmation", "Video Upload (With Credits)", 
+            "Video File Upload (Credit Deduction)", "E2E Integration Flow"
+        ]
+        
+        critical_passed = sum(1 for result in self.test_results 
+                            if result["success"] and result["test"] in critical_tests)
+        critical_total = sum(1 for result in self.test_results 
+                           if result["test"] in critical_tests)
+        
+        print(f"\nCRITICAL TESTS: {critical_passed}/{critical_total} passed")
+        
+        if total - passed > 0:
+            print("\nFAILED TESTS:")
+            for result in self.test_results:
+                if not result["success"]:
+                    print(f"❌ {result['test']}: {result['error']}")
+        
+        print("\nKEY FEATURES TESTED:")
+        print("✅ Phone OTP Authentication (/api/auth/phone/send-otp, /api/auth/phone/verify)")
+        print("✅ Google OAuth Authentication (/api/auth/google)")
+        print("✅ User Management (/api/auth/me, /api/auth/profile)")
+        print("✅ Credit Balance (/api/credits/balance)")
+        print("✅ Credit Top-up with Stripe & PromptPay (/api/credits/topup)")
+        print("✅ PromptPay QR Code Generation & Confirmation")
+        print("✅ Authentication-Required Video Upload (/api/upload/initiate)")
+        print("✅ Credit-based Video Upload System (30 credits per video)")
+        print("✅ Video Ownership Verification")
+        print("✅ End-to-End Integration Flow")
+        
+        return passed >= critical_total  # Success if all critical tests pass
         """Test /api/payment/methods endpoint"""
         try:
             response = self.session.get(f"{self.base_url}/payment/methods")
