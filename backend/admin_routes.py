@@ -82,6 +82,28 @@ async def get_current_admin(credentials: HTTPAuthorizationCredentials = Depends(
     
     return AdminUser(**admin)
 
+# Helper functions
+def serialize_doc(doc):
+    """Convert MongoDB document to JSON-serializable format"""
+    if doc is None:
+        return None
+    if isinstance(doc, list):
+        return [serialize_doc(item) for item in doc]
+    if isinstance(doc, dict):
+        # Remove MongoDB's _id field and convert ObjectId to string if present
+        result = {}
+        for key, value in doc.items():
+            if key == '_id':
+                continue  # Skip MongoDB's _id field
+            if hasattr(value, '__dict__'):
+                result[key] = serialize_doc(value.__dict__)
+            elif isinstance(value, (list, dict)):
+                result[key] = serialize_doc(value)
+            else:
+                result[key] = value
+        return result
+    return doc
+
 async def log_admin_action(db, admin_id: str, action: str, target_type: str, target_id: str, details: Dict[str, Any] = {}):
     log = AdminLog(
         admin_id=admin_id,
