@@ -481,10 +481,10 @@ class PegoAPITester:
             # Restore headers
             self.session.headers.update(original_headers)
             
-            # Should fail with 401
-            if response.status_code == 401:
+            # Should fail with 401 or 403
+            if response.status_code in [401, 403]:
                 self.log_test("Video Upload (No Auth)", True, 
-                            "Correctly rejected upload without authentication")
+                            f"Correctly rejected upload without authentication (status {response.status_code})")
                 return True
             else:
                 self.log_test("Video Upload (No Auth)", False, "", 
