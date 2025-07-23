@@ -403,7 +403,7 @@ async def get_videos(
 async def moderate_videos(
     moderation: VideoModerationAction,
     admin: AdminUser = Depends(get_current_admin),
-    db=None
+    db=Depends(get_db)
 ):
     if moderation.action not in ["suspend", "approve", "feature", "remove_feature"]:
         raise HTTPException(status_code=400, detail="Invalid moderation action")
